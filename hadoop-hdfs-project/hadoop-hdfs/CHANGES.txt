@@ -694,6 +694,15 @@ Release 2.8.0 - UNRELEASED
     HDFS-8635. Migrate HDFS native build to new CMake framework (Alan Burlison
     via Colin P. McCabe)
 
+    HDFS-8666. Speedup the TestMover tests. (Walter Su via jing9)
+
+    HDFS-8703. Merge refactor of DFSInputStream from ErasureCoding branch
+    (vinayakumarb)
+
+    HDFS-8709. Clarify automatic sync in FSEditLog#logEdit. (wang)
+
+    HDFS-8652. Track BlockInfo instead of Block in CorruptReplicasMap. (jing9)
+
   OPTIMIZATIONS
 
     HDFS-8026. Trace FSOutputSummer#writeChecksumChunks rather than
@@ -995,6 +1004,12 @@ Release 2.8.0 - UNRELEASED
     HDFS-8706. Fix typo in datanode startup options in HDFSCommands.html.
     (Brahma Reddy Battula via Arpit Agarwal)
 
+    HDFS-8577. Avoid retrying to recover lease on a file which does not exist
+    (J.Andreina via vinayakumarb)
+
+    HDFS-8686. WebHdfsFileSystem#getXAttr(Path p, final String name) doesn't
+    work if namespace is in capitals (kanaka kumar avvaru via vinayakumarb)
+
 Release 2.7.2 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -1009,7 +1024,7 @@ Release 2.7.2 - UNRELEASED
 
   BUG FIXES
 
-Release 2.7.1 - UNRELEASED
+Release 2.7.1 - 2015-07-06 
 
   INCOMPATIBLE CHANGES
 

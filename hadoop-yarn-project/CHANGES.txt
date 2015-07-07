@@ -586,6 +586,18 @@ Release 2.8.0 - UNRELEASED
     YARN-3830. AbstractYarnScheduler.createReleaseCache may try to clean a null
     attempt. (nijel via devaraj)
 
+    YARN-3875. FSSchedulerNode#reserveResource() doesn't print Application Id
+    properly in log. (Bibin A Chundatt via devaraj)
+
+    YARN-3882. AggregatedLogFormat should close aclScanner and ownerScanner
+    after create them. (zhihai xu via xgong)
+
+    YARN-3837. javadocs of TimelineAuthenticationFilterInitializer give wrong
+    prefix for auth options. (Bibin A Chundatt via devaraj)
+
+    YARN-2194. Fix bug causing CGroups functionality to fail on RHEL7.
+    (Wei Yan via vvasudev)
+
 Release 2.7.2 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -598,7 +610,13 @@ Release 2.7.2 - UNRELEASED
 
   BUG FIXES
 
-Release 2.7.1 - UNRELEASED
+    YARN-3793. Several NPEs when deleting local files on NM recovery (Varun
+    Saxena via jlowe)
+
+    YARN-3508. Prevent processing preemption events on the main RM dispatcher. 
+    (Varun Saxena via wangda)
+
+Release 2.7.1 - 2015-07-06 
 
   INCOMPATIBLE CHANGES
 
