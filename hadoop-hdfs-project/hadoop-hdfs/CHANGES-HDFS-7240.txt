@@ -26,3 +26,5 @@
     HDFS-8661. DataNode should filter the set of NameSpaceInfos passed to
     Datasets. (Arpit Agarwal)
 
+    HDFS-8654. OzoneHandler : Add ACL support. (Anu Engineer via Arpit Agarwal)
+
