@@ -20,28 +20,18 @@ package org.apache.hadoop.hdfs.server.datanode.fsdataset.impl;
 import java.io.IOException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.NodeType;
 import org.apache.hadoop.hdfs.server.datanode.DataNode;
 import org.apache.hadoop.hdfs.server.datanode.DataStorage;
-import org.apache.hadoop.hdfs.server.datanode.fsdataset.DatasetSpi;
-import org.apache.hadoop.hdfs.server.datanode.fsdataset.VolumeSpi;
+import org.apache.hadoop.hdfs.server.datanode.dataset.DatasetSpi;
+import org.apache.hadoop.hdfs.server.datanode.fsdataset.FsDatasetSpi;
 
 /**
  * A factory for creating {@link FsDatasetImpl} objects.
  */
 public class FsDatasetFactory extends DatasetSpi.Factory {
-
-
   @Override
-  public synchronized DatasetSpi<? extends VolumeSpi> newInstance(
-      DataNode datanode, DataStorage storage, Configuration conf,
-      NodeType serviceType) throws IOException {
-    switch (serviceType) {
-    case NAME_NODE:
-      return new FsDatasetImpl(datanode, storage, conf);
-    default:
-      throw new IllegalArgumentException(
-          "Unsupported node type " + serviceType);
-    }
+  public FsDatasetImpl newInstance(DataNode datanode,
+      DataStorage storage, Configuration conf) throws IOException {
+    return new FsDatasetImpl(datanode, storage, conf);
   }
 }

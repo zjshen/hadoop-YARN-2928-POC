@@ -25,6 +25,7 @@ import java.nio.channels.ClosedChannelException;
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
+import org.apache.hadoop.hdfs.server.datanode.dataset.VolumeSpi;
 
 /**
  * This is an interface for the underlying volume used by DFS.

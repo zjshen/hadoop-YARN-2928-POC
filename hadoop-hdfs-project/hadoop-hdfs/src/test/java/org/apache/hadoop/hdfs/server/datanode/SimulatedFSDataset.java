@@ -46,6 +46,7 @@ import org.apache.hadoop.hdfs.protocol.HdfsBlocksMetadata;
 import org.apache.hadoop.hdfs.server.common.HdfsServerConstants;
 import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.ReplicaState;
 import org.apache.hadoop.hdfs.server.common.Storage;
+import org.apache.hadoop.hdfs.server.datanode.dataset.DatasetSpi;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.*;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.FsDatasetSpi;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.FsVolumeReference;
@@ -86,8 +87,7 @@ public class SimulatedFSDataset implements FsDatasetSpi<FsVolumeSpi> {
   static class Factory extends DatasetSpi.Factory {
     @Override
     public SimulatedFSDataset newInstance(DataNode datanode,
-        DataStorage storage, Configuration conf,
-        HdfsServerConstants.NodeType serviceType) throws IOException {
+        DataStorage storage, Configuration conf) throws IOException {
       return new SimulatedFSDataset(datanode, storage, conf);
     }
 

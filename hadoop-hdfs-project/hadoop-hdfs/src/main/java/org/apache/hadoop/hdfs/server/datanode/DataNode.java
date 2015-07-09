@@ -155,10 +155,10 @@ import org.apache.hadoop.hdfs.server.common.Storage.StorageDirectory;
 import org.apache.hadoop.hdfs.server.common.StorageInfo;
 import org.apache.hadoop.hdfs.server.datanode.DataStorage.VolumeBuilder;
 import org.apache.hadoop.hdfs.server.datanode.SecureDataNodeStarter.SecureResources;
-import org.apache.hadoop.hdfs.server.datanode.fsdataset.DatasetSpi;
+import org.apache.hadoop.hdfs.server.datanode.dataset.DatasetSpi;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.FsDatasetSpi;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.FsVolumeSpi;
-import org.apache.hadoop.hdfs.server.datanode.fsdataset.VolumeSpi;
+import org.apache.hadoop.hdfs.server.datanode.dataset.VolumeSpi;
 import org.apache.hadoop.hdfs.server.datanode.metrics.DataNodeMetrics;
 import org.apache.hadoop.hdfs.server.datanode.web.DatanodeHttpServer;
 import org.apache.hadoop.hdfs.server.protocol.BlockRecoveryCommand.RecoveringBlock;
@@ -296,8 +296,6 @@ public class DataNode extends ReconfigurableBase
   private boolean shutdownInProgress = false;
   private BlockPoolManager blockPoolManager;
 
-  private final DatasetSpi.Factory datasetFactory;
-
   // This is an onto (many-one) mapping. Multiple block pool IDs may share
   // the same dataset.
   private volatile Map<String,
@@ -406,7 +404,6 @@ public class DataNode extends ReconfigurableBase
     this.getHdfsBlockLocationsEnabled = false;
     this.blockScanner = new BlockScanner(this, conf);
     this.pipelineSupportECN = false;
-    this.datasetFactory = null;
   }
 
   /**
@@ -421,7 +418,6 @@ public class DataNode extends ReconfigurableBase
     this.lastDiskErrorCheck = 0;
     this.maxNumberOfBlocksToLog = conf.getLong(DFS_MAX_NUM_BLOCKS_TO_LOG_KEY,
         DFS_MAX_NUM_BLOCKS_TO_LOG_DEFAULT);
-    datasetFactory = FsDatasetSpi.Factory.getFactory(conf);
     this.usersWithLocalPathAccess = Arrays.asList(
         conf.getTrimmedStrings(DFSConfigKeys.DFS_BLOCK_LOCAL_PATH_ACCESS_USER_KEY));
     this.connectToDnViaHostname = conf.getBoolean(
@@ -1494,7 +1490,7 @@ public class DataNode extends ReconfigurableBase
    */
   private DatasetSpi<?> initStorage(
       final String blockPoolId, final NamespaceInfo nsInfo) throws IOException {
-    if (!datasetFactory.isSimulated()) {
+    if (!DatasetSpi.Factory.getFactory(conf, nsInfo.getNodeType()).isSimulated()) {
       final StartupOption startOpt = getStartupOption(conf);
       if (startOpt == null) {
         throw new IOException("Startup option not set.");
@@ -2642,7 +2638,8 @@ public class DataNode extends ReconfigurableBase
       return dataset;
     }
 
-    dataset = datasetFactory.newInstance(this, storage, conf, serviceType);
+    dataset = DatasetSpi.Factory.getFactory(conf, serviceType)
+                                .newInstance(this, storage, conf);
     datasets.put(serviceType, dataset);
     datasetsMap.put(bpid, dataset);
 

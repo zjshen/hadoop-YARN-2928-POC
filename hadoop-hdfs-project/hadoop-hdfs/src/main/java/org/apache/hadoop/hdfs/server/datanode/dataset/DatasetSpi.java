@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hdfs.server.datanode.fsdataset;
+package org.apache.hadoop.hdfs.server.datanode.dataset;
 
 
 import org.apache.hadoop.classification.InterfaceAudience;
@@ -26,6 +26,7 @@ import org.apache.hadoop.hdfs.protocol.Block;
 import org.apache.hadoop.hdfs.protocol.BlockListAsLongs;
 import org.apache.hadoop.hdfs.protocol.ExtendedBlock;
 import org.apache.hadoop.hdfs.server.common.HdfsServerConstants;
+import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.NodeType;
 import org.apache.hadoop.hdfs.server.common.Storage;
 import org.apache.hadoop.hdfs.server.datanode.DataNode;
 import org.apache.hadoop.hdfs.server.datanode.DataStorage;
@@ -55,21 +56,27 @@ public interface DatasetSpi<V extends VolumeSpi> {
     /**
      * @return the configured factory.
      */
-    public static Factory getFactory(Configuration conf) {
-      @SuppressWarnings("rawtypes")
-      final Class<? extends Factory> clazz = conf.getClass(
-          DFSConfigKeys.DFS_DATANODE_FSDATASET_FACTORY_KEY,
-          FsDatasetFactory.class,
-          Factory.class);
-      return ReflectionUtils.newInstance(clazz, conf);
+    public static Factory getFactory(Configuration conf, NodeType nodeType) {
+      switch(nodeType) {
+      case NAME_NODE:
+        @SuppressWarnings("rawtypes")
+        final Class<? extends Factory> clazz = conf.getClass(
+            DFSConfigKeys.DFS_DATANODE_FSDATASET_FACTORY_KEY,
+            FsDatasetFactory.class,
+            Factory.class);
+        return ReflectionUtils.newInstance(clazz, conf);
+      default:
+        throw new IllegalArgumentException("Unsupported NODE_TYPE " + nodeType);
+      }
     }
 
     /**
-     * Create a new dataset object for a specific service type
+     * Create a new dataset object for a specific service type.
+     * The caller must perform synchronization, if required.
      */
     public abstract DatasetSpi<? extends VolumeSpi> newInstance(
-        DataNode datanode, DataStorage storage, Configuration conf,
-        HdfsServerConstants.NodeType serviceType) throws IOException;
+        DataNode datanode, DataStorage storage, Configuration conf)
+        throws IOException;
 
     /** Does the factory create simulated objects? */
     public boolean isSimulated() {

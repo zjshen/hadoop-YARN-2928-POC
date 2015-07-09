@@ -74,8 +74,7 @@ public class TestWriteBlockGetsBlockLengthHint {
     static class Factory extends FsDatasetSpi.Factory {
       @Override
       public SimulatedFSDataset newInstance(DataNode datanode,
-          DataStorage storage, Configuration conf,
-          HdfsServerConstants.NodeType serviceType) throws IOException {
+          DataStorage storage, Configuration conf) throws IOException {
         return new FsDatasetChecker(storage, conf);
       }
 

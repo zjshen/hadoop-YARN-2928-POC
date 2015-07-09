@@ -24,12 +24,16 @@ import java.util.Arrays;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hdfs.protocol.Block;
+import org.apache.hadoop.hdfs.server.common.HdfsServerConstants;
 import org.apache.hadoop.hdfs.server.common.HdfsServerConstants.StartupOption;
 import org.apache.hadoop.hdfs.server.datanode.SimulatedFSDataset;
+import org.apache.hadoop.hdfs.server.datanode.dataset.DatasetSpi;
 import org.apache.hadoop.hdfs.server.datanode.fsdataset.FsDatasetSpi;
 import org.apache.hadoop.hdfs.server.namenode.CreateEditsLog;
 import org.apache.hadoop.net.DNS;
 import org.apache.hadoop.util.Time;
+
+import static org.apache.hadoop.hdfs.server.common.HdfsServerConstants.NodeType.NAME_NODE;
 
 
 /**
@@ -137,7 +141,7 @@ public class DataNodeCluster {
         }
         bpid = args[i];
       } else if (args[i].equals("-inject")) {
-        if (!FsDatasetSpi.Factory.getFactory(conf).isSimulated()) {
+        if (!DatasetSpi.Factory.getFactory(conf, NAME_NODE).isSimulated()) {
           System.out.print("-inject is valid only for simulated");
           printUsageExit(); 
         }
@@ -172,7 +176,8 @@ public class DataNodeCluster {
       System.out.println("No name node address and port in config");
       System.exit(-1);
     }
-    boolean simulated = FsDatasetSpi.Factory.getFactory(conf).isSimulated();
+    boolean simulated =
+        DatasetSpi.Factory.getFactory(conf, NAME_NODE).isSimulated();
     System.out.println("Starting " + numDataNodes + 
           (simulated ? " Simulated " : " ") +
           " Data Nodes that will connect to Name Node at " + nameNodeAdr);

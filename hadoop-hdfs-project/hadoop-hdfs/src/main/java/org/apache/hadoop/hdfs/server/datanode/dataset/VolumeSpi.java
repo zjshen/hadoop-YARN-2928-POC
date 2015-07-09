@@ -15,7 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.hadoop.hdfs.server.datanode.fsdataset;
+package org.apache.hadoop.hdfs.server.datanode.dataset;
 
 import java.io.IOException;
 
@@ -68,5 +68,5 @@ public interface VolumeSpi {
   /**
    * Get the DatasetSpi which this volume is a part of.
    */
-  DatasetSpi getDataset();
+  DatasetSpi<? extends VolumeSpi> getDataset();
 }

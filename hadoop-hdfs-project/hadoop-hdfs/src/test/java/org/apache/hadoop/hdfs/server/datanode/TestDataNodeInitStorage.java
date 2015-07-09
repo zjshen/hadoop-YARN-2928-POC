@@ -46,7 +46,7 @@ public class TestDataNodeInitStorage {
       @Override
       public SimulatedFsDatasetVerifier newInstance(
           DataNode datanode, DataStorage storage,
-          Configuration conf, HdfsServerConstants.NodeType serviceType) throws IOException {
+          Configuration conf) throws IOException {
         return new SimulatedFsDatasetVerifier(storage, conf);
       }
 
