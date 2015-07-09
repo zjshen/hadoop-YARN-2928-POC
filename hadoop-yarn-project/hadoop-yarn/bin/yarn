@@ -42,6 +42,7 @@ function hadoop_usage
   echo "  scmadmin                              SharedCacheManager admin tools"
   echo "  sharedcachemanager                    run the SharedCacheManager daemon"
   echo "  timelineserver                        run the timeline server"
+  echo "  timelinereader                        run the timeline reader server"
   echo "  top                                   view cluster information"
   echo "  version                               print the version"
   echo ""
@@ -179,6 +180,10 @@ case "${COMMAND}" in
     if [[ -n "${YARN_TIMELINESERVER_HEAPSIZE}" ]]; then
       HADOOP_HEAPSIZE_MAX="${YARN_TIMELINESERVER_HEAPSIZE}"
     fi
+  ;;
+  timelinereader)
+    supportdaemonization="true"
+    CLASS='org.apache.hadoop.yarn.server.timelineservice.reader.TimelineReaderServer'
   ;;
   version)
     CLASS=org.apache.hadoop.util.VersionInfo
