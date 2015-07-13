@@ -50,7 +50,7 @@ import java.util.Set;
 @InterfaceStability.Unstable
 public interface DatasetSpi<V extends VolumeSpi> {
   /**
-   * A factory for creating {@link FsDatasetSpi} objects.
+   * A factory for creating {@link DatasetSpi} objects.
    */
   abstract class Factory {
     /**
