@@ -95,7 +95,7 @@ import org.apache.hadoop.yarn.server.timelineservice.collector.AppLevelTimelineC
 import org.apache.hadoop.yarn.server.timelineservice.collector.TimelineCollector;
 import org.apache.hadoop.yarn.server.utils.BuilderUtils;
 import org.apache.hadoop.yarn.server.webproxy.ProxyUriUtils;
-import org.apache.hadoop.yarn.state.InvalidStateTransitonException;
+import org.apache.hadoop.yarn.state.InvalidStateTransitionException;
 import org.apache.hadoop.yarn.state.MultipleArcTransition;
 import org.apache.hadoop.yarn.state.SingleArcTransition;
 import org.apache.hadoop.yarn.state.StateMachine;
@@ -804,7 +804,7 @@ public class RMAppImpl implements RMApp, Recoverable {
       try {
         /* keep the master in sync with the state machine */
         this.stateMachine.doTransition(event.getType(), event);
-      } catch (InvalidStateTransitonException e) {
+      } catch (InvalidStateTransitionException e) {
         LOG.error("Can't handle this event at current state", e);
         /* TODO fail the application on the failed transition */
       }
