@@ -131,6 +131,12 @@ Release 2.8.0 - UNRELEASED
     YARN-41. The RM should handle the graceful shutdown of the NM. (Devaraj K via 
     junping_du)
 
+    YARN-1012. Report NM aggregated container resource utilization in heartbeat. 
+    (Inigo Goiri via kasha)
+
+    YARN-3116. RM notifies NM whether a container is an AM container or normal
+    task container. (Giovanni Matteo Fumarola via zjshen)
+
   IMPROVEMENTS
 
     YARN-644. Basic null check is not performed on passed in arguments before
@@ -319,6 +325,12 @@ Release 2.8.0 - UNRELEASED
 
     YARN-3827. Migrate YARN native build to new CMake framework (Alan Burlison
     via Colin P. McCabe)
+
+    YARN-3800. Reduce storage footprint for ReservationAllocation. (Anubhav Dhoot
+    via curino)
+
+    YARN-3069. Document missing properties in yarn-default.xml.
+    (Ray Chiang via aajisaka)
 
   OPTIMIZATIONS
 
@@ -598,6 +610,27 @@ Release 2.8.0 - UNRELEASED
     YARN-2194. Fix bug causing CGroups functionality to fail on RHEL7.
     (Wei Yan via vvasudev)
 
+    YARN-3892. Fixed NPE on RMStateStore#serviceStop when
+    CapacityScheduler#serviceInit fails. (Bibin A Chundatt via jianhe)
+
+    YARN-3888. ApplicationMaster link is broken in RM WebUI when appstate is NEW.
+    (Bibin A Chundatt via xgong)
+
+    YARN-3849. Too much of preemption activity causing continuos killing of
+    containers across queues. (Sunil G via wangda)
+
+    YARN-3917. getResourceCalculatorPlugin for the default should intercept all
+    exceptions. (gera)
+
+    YARN-3894. RM startup should fail for wrong CS xml NodeLabel capacity
+    configuration. (Bibin A Chundatt via wangda)
+
+    YARN-3381. Fix typo InvalidStateTransitonException.
+    (Brahma Reddy Battula via aajisaka)
+
+    YARN-3453. Ensure preemption logic in FairScheduler uses DominantResourceCalculator
+    in DRF queues to prevent unnecessary thrashing. (asuresh)
+
 Release 2.7.2 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -615,6 +648,8 @@ Release 2.7.2 - UNRELEASED
 
     YARN-3508. Prevent processing preemption events on the main RM dispatcher. 
     (Varun Saxena via wangda)
+
+    YARN-3690. [JDK8] 'mvn site' fails. (Brahma Reddy Battula via aajisaka)
 
 Release 2.7.1 - 2015-07-06 
 
@@ -1660,6 +1695,9 @@ Release 2.6.0 - 2014-11-18
 
     YARN-2811. In Fair Scheduler, reservation fulfillments shouldn't ignore max
     share (Siqi Li via Sandy Ryza)
+
+    YARN-3445. Cache runningApps in RMNode for getting running apps on given
+    NodeId. (Junping Du via mingma)
 
   IMPROVEMENTS
 

@@ -230,8 +230,6 @@ Trunk (Unreleased)
     HADOOP-11142. Remove hdfs dfs reference from file system shell
     documentation (Kengo Seki via aw)
 
-    HADOOP-11807. add a lint mode to releasedocmaker (ramtin via aw)
-
     HADOOP-12149. copy all of test-patch BINDIR prior to re-exec (aw)
 
   BUG FIXES
@@ -526,6 +524,9 @@ Release 2.8.0 - UNRELEASED
     HADOOP-10971. Add -C flag to make `hadoop fs -ls` print filenames only.
     (Kengo Seki via aajisaka)
 
+    HADOOP-5732. Add SFTP FileSystem. (Ramtin Boustani and Inigo Goiri via
+    cdouglas)
+
   IMPROVEMENTS
 
     HADOOP-6842. "hadoop fs -text" does not give a useful text representation
@@ -681,6 +682,21 @@ Release 2.8.0 - UNRELEASED
     HADOOP-11974. Fix FIONREAD #include on Solaris (Alan Burlison via Colin P.
     McCabe)
 
+    HADOOP-12193. Rename Touchz.java to Touch.java. (wang)
+
+    HADOOP-12195. Add annotation to package-info.java file to workaround
+    MCOMPILER-205. (wang)
+
+    HADOOP-12201. Add tracing to FileSystem#createFileSystem and Globber#glob
+    (cmccabe)
+
+    HADOOP-12180. Move ResourceCalculatorPlugin from YARN to Common. 
+    (Chris Douglas via kasha)
+
+    HADOOP-12210. Collect network usage on the node (Robert Grandl via cdouglas)
+
+    HADOOP-12211. Collect disk usage on the node (Robert Grandl via cdouglas)
+
   OPTIMIZATIONS
 
     HADOOP-11785. Reduce the number of listStatus operation in distcp
@@ -712,6 +728,12 @@ Release 2.8.0 - UNRELEASED
 
     HADOOP-12172. FsShell mkdir -p makes an unnecessary check for the existence
     of the parent. (cnauroth)
+
+    HADOOP-12194. Support for incremental generation in the protoc plugin.
+    (wang)
+
+    HADOOP-11878. FileContext#fixRelativePart should check for not null for a
+    more informative exception. (Brahma Reddy Battula via kasha)
 
   BUG FIXES
 
@@ -933,6 +955,9 @@ Release 2.8.0 - UNRELEASED
     HADOOP-12117. Potential NPE from Configuration#loadProperty with
     allowNullValueProperties set. (zhihai xu via vinayakumarb)
 
+    HADOOP-12200. TestCryptoStreamsWithOpensslAesCtrCryptoCodec should be
+    skipped in non-native profile. (Masatake Iwasaki via aajisaka)
+
 Release 2.7.2 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -947,6 +972,9 @@ Release 2.7.2 - UNRELEASED
 
     HADOOP-12186. ActiveStandbyElector shouldn't call monitorLockNodeAsync
     multiple times (zhihai xu via vinayakumarb)
+
+    HADOOP-12191. Bzip2Factory is not thread safe. (Brahma Reddy Battula
+    via ozawa)
 
 Release 2.7.1 - 2015-07-06 
 

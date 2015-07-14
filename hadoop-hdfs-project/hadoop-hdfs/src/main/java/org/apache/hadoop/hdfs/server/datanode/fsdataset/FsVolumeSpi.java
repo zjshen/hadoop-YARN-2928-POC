@@ -43,18 +43,18 @@ public interface FsVolumeSpi extends VolumeSpi {
   FsVolumeReference obtainReference() throws ClosedChannelException;
 
   /** @return the directory for the finalized blocks in the block pool. */
-  public File getFinalizedDir(String bpid) throws IOException;
+  File getFinalizedDir(String bpid) throws IOException;
   
   /**
    * Reserve disk space for an RBW block so a writer does not run out of
    * space before the block is full.
    */
-  public void reserveSpaceForRbw(long bytesToReserve);
+  void reserveSpaceForRbw(long bytesToReserve);
 
   /**
    * Release disk space previously reserved for RBW block.
    */
-  public void releaseReservedSpace(long bytesToRelease);
+  void releaseReservedSpace(long bytesToRelease);
 
   /**
    * Release reserved memory for an RBW block written to transient storage
@@ -62,7 +62,7 @@ public interface FsVolumeSpi extends VolumeSpi {
    * bytesToRelease will be rounded down to the OS page size since locked
    * memory reservation must always be a multiple of the page size.
    */
-  public void releaseLockedMemory(long bytesToRelease);
+  void releaseLockedMemory(long bytesToRelease);
 
   /**
    * BlockIterator will return ExtendedBlock entries from a block pool in
@@ -74,7 +74,7 @@ public interface FsVolumeSpi extends VolumeSpi {
    *
    * Closing the iterator does not save it.  You must call save to save it.
    */
-  public interface BlockIterator extends Closeable {
+  interface BlockIterator extends Closeable {
     /**
      * Get the next block.<p/>
      *
@@ -91,17 +91,17 @@ public interface FsVolumeSpi extends VolumeSpi {
      *                         this volume.  In this case, EOF will be set on
      *                         the iterator.
      */
-    public ExtendedBlock nextBlock() throws IOException;
+    ExtendedBlock nextBlock() throws IOException;
 
     /**
      * Returns true if we got to the end of the block pool.
      */
-    public boolean atEnd();
+    boolean atEnd();
 
     /**
      * Repositions the iterator at the beginning of the block pool.
      */
-    public void rewind();
+    void rewind();
 
     /**
      * Save this block iterator to the underlying volume.
@@ -111,7 +111,7 @@ public interface FsVolumeSpi extends VolumeSpi {
      * @throws IOException   If there was an error when saving the block
      *                         iterator.
      */
-    public void save() throws IOException;
+    void save() throws IOException;
 
     /**
      * Set the maximum staleness of entries that we will return.<p/>
@@ -122,25 +122,25 @@ public interface FsVolumeSpi extends VolumeSpi {
      * to 0, consumers of this API must handle race conditions where block
      * disappear before they can be processed.
      */
-    public void setMaxStalenessMs(long maxStalenessMs);
+    void setMaxStalenessMs(long maxStalenessMs);
 
     /**
      * Get the wall-clock time, measured in milliseconds since the Epoch,
      * when this iterator was created.
      */
-    public long getIterStartMs();
+    long getIterStartMs();
 
     /**
      * Get the wall-clock time, measured in milliseconds since the Epoch,
      * when this iterator was last saved.  Returns iterStartMs if the
      * iterator was never saved.
      */
-    public long getLastSavedMs();
+    long getLastSavedMs();
 
     /**
      * Get the id of the block pool which this iterator traverses.
      */
-    public String getBlockPoolId();
+    String getBlockPoolId();
   }
 
   /**
@@ -152,7 +152,7 @@ public interface FsVolumeSpi extends VolumeSpi {
    *
    * @return                 The new block iterator.
    */
-  public BlockIterator newBlockIterator(String bpid, String name);
+  BlockIterator newBlockIterator(String bpid, String name);
 
   /**
    * Load a saved block iterator.
@@ -164,9 +164,9 @@ public interface FsVolumeSpi extends VolumeSpi {
    * @throws IOException     If there was an IO error loading the saved
    *                           block iterator.
    */
-  public BlockIterator loadBlockIterator(String bpid, String name)
+  BlockIterator loadBlockIterator(String bpid, String name)
       throws IOException;
 
   @Override
-  public FsDatasetSpi getDataset();
+  FsDatasetSpi getDataset();
 }

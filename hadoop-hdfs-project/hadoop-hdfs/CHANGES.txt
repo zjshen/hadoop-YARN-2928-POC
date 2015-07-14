@@ -701,7 +701,26 @@ Release 2.8.0 - UNRELEASED
 
     HDFS-8709. Clarify automatic sync in FSEditLog#logEdit. (wang)
 
-    HDFS-8652. Track BlockInfo instead of Block in CorruptReplicasMap. (jing9)
+    HDFS-8711. setSpaceQuota command should print the available storage type
+    when input storage type is wrong. (Brahma Reddy Battula via xyao)
+
+    HDFS-8620. Clean up the checkstyle warinings about ClientProtocol.
+    (Takanobu Asanuma via wheat9)
+
+    HDFS-8712. Remove 'public' and 'abstracta modifiers in FsVolumeSpi and
+    FsDatasetSpi (Lei (Eddy) Xu via vinayakumarb)
+
+    HDFS-8726. Move protobuf files that define the client-sever protocols to
+    hdfs-client. (wheat9)
+
+    HDFS-8751. Remove setBlocks API from INodeFile and misc code cleanup. (Zhe
+    Zhang via jing9)
+
+    HDFS-8541. Mover should exit with NO_MOVE_PROGRESS if there is no move
+    progress.  (Surendra Singh Lilhore via szetszwo)
+
+    HDFS-8742. Inotify: Support event for OP_TRUNCATE.
+    (Surendra Singh Lilhore via aajisaka)
 
   OPTIMIZATIONS
 
@@ -1010,6 +1029,21 @@ Release 2.8.0 - UNRELEASED
     HDFS-8686. WebHdfsFileSystem#getXAttr(Path p, final String name) doesn't
     work if namespace is in capitals (kanaka kumar avvaru via vinayakumarb)
 
+    HDFS-8642. Make TestFileTruncate more reliable. (Rakesh R via
+    Arpit Agarwal)
+
+    HDFS-8729. Fix TestFileTruncate#testTruncateWithDataNodesRestartImmediately
+    which occasionally failed. (Walter Su via jing9)
+
+    HDFS-8749. Fix findbugs warnings in BlockManager.java.
+    (Brahma Reddy Battula via aajisaka)
+
+    HDFS-2956. calling fetchdt without a --renewer argument throws NPE
+    (vinayakumarb)
+
+    HDFS-7608: hdfs dfsclient newConnectedPeer has no write timeout (Xiaoyu Yao
+    via Colin P. McCabe)
+
 Release 2.7.2 - UNRELEASED
 
   INCOMPATIBLE CHANGES
@@ -1021,6 +1055,8 @@ Release 2.7.2 - UNRELEASED
   HDFS-8659. Block scanner INFO message is spamming logs. (Yongjun Zhang)
 
   OPTIMIZATIONS
+
+  HDFS-8722. Optimize datanode writes for small writes and flushes (kihwal)
 
   BUG FIXES
 
@@ -1055,6 +1091,9 @@ Release 2.7.1 - 2015-07-06
     dfs.namenode.kerberos.principal.pattern (Harsh J via aw)
 
     HDFS-7164. Feature documentation for HDFS-6581. (Arpit Agarwal)
+
+    HDFS-8143. Mover should exit after some retry when failed to move blocks.
+    (Surendra Singh Lilhore via szetszwo)
 
   OPTIMIZATIONS
     HDFS-8480. Fix performance and timeout issues in HDFS-7929 by using
