@@ -697,6 +697,9 @@ Release 2.8.0 - UNRELEASED
 
     HADOOP-12211. Collect disk usage on the node (Robert Grandl via cdouglas)
 
+    HADOOP-12153. ByteBufferReadable doesn't declare @InterfaceAudience and
+    @InterfaceStability. (Brahma Reddy Battula via ozawa)
+
   OPTIMIZATIONS
 
     HADOOP-11785. Reduce the number of listStatus operation in distcp
@@ -965,6 +968,8 @@ Release 2.7.2 - UNRELEASED
   NEW FEATURES
 
   IMPROVEMENTS
+
+    HADOOP-12232. Upgrade Tomcat dependency to 6.0.44. (cnauroth)
 
   OPTIMIZATIONS
 
