@@ -19,6 +19,9 @@
 package org.apache.hadoop.yarn.server.timelineservice.collector;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -28,6 +31,9 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.service.CompositeService;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntities;
+import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity;
+import org.apache.hadoop.yarn.api.records.timelineservice.TimelineMetric;
+import org.apache.hadoop.yarn.api.records.timelineservice.TimelineMetricCalculator;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineWriteResponse;
 import org.apache.hadoop.yarn.server.timelineservice.storage.TimelineWriter;
 
@@ -45,9 +51,23 @@ public abstract class TimelineCollector extends CompositeService {
 
   private TimelineWriter writer;
 
+  // <metric_id, <entity_id, metric>>
+  private Map<String, Map<String, TimelineMetric>> cachedLatestMetrics =
+      new HashMap<String, Map<String, TimelineMetric>>();
+
+  // <metric_id, aggregated_metric>
+  private Map<String, TimelineMetric> perIdAggregatedMetricsArea =
+      new HashMap<String, TimelineMetric>();
+
+  // <metric_id, aggregated_metric_num>
+  private Map<String, Number> perIdAggregatedNum =
+      new HashMap<String, Number>();
+
   public TimelineCollector(String name) {
     super(name);
   }
+
+  public static String AREA_POSTFIX = "_AREA";
 
   @Override
   protected void serviceInit(Configuration conf) throws Exception {
@@ -96,9 +116,111 @@ public abstract class TimelineCollector extends CompositeService {
     }
 
     TimelineCollectorContext context = getTimelineEntityContext();
+    Map<String, TimelineMetric> aggregatedMetrics =
+        aggregateMetrics(entities);
+    
     return writer.write(context.getClusterId(), context.getUserId(),
         context.getFlowName(), context.getFlowVersion(), context.getFlowRunId(),
-        context.getAppId(), newApp, entities);
+        context.getAppId(), newApp, entities, aggregatedMetrics);
+  }
+  
+  /**
+   * Aggregate Metrics with entities.
+   * @param entities
+   * @return
+   */
+  private Map<String, TimelineMetric> aggregateMetrics(
+      TimelineEntities entities) {
+    return TimelineCollector.aggregateMetrics(entities,
+        this.perIdAggregatedMetricsArea, this.perIdAggregatedNum,
+        cachedLatestMetrics);
+  }
+
+  /**
+   * Aggregate Metrics with entities against base aggregation metrics and 
+   * cached latest metrics.
+   * @param entities
+   * @param baseAggregatedArea
+   * @param cachedLatestMetrics cached latest metrics mapping from 
+   * metric_id to <entity_id, metric>
+   * @return
+   */
+  public static Map<String, TimelineMetric> aggregateMetrics(
+      TimelineEntities entities,
+      Map<String, TimelineMetric> baseAggregatedArea,
+      Map<String, Number> perIdAggregatedNum,
+      Map<String, Map<String, TimelineMetric>> cachedLatestMetrics) {
+
+    Map<String, TimelineMetric> modifiedMetricMap =
+        new HashMap<String, TimelineMetric>();
+
+    Set<TimelineEntity> entitySet = entities.getEntities();
+    for (TimelineEntity entity : entitySet) {
+      String entityId = entity.getId();
+      Set<TimelineMetric> timelineMetricSet = entity.getMetrics();
+      if (timelineMetricSet != null && !timelineMetricSet.isEmpty()) {
+        for (TimelineMetric metric : timelineMetricSet) {
+          // do nothing for null metric
+          if (metric != null) {
+            String metricId = metric.getId();
+            Map<String, TimelineMetric> entityIdMap = 
+                cachedLatestMetrics.get(metricId);
+
+            // first metrics aggregated on specific metric_id
+            if (entityIdMap == null) {
+              entityIdMap = new HashMap<String, TimelineMetric>();
+              cachedLatestMetrics.put(metricId, entityIdMap);
+              perIdAggregatedNum.put(metricId, null);
+            }
+            TimelineMetric latestTimelineMetrics = entityIdMap.get(entityId);
+
+            Number delta = null;
+            // new added metric for specific entityId
+            if (latestTimelineMetrics == null) {
+              delta = metric.getSingleDataValue();
+            } else {
+              delta = TimelineMetricCalculator.sub(
+                  metric.getSingleDataValue(), 
+                  latestTimelineMetrics.getSingleDataValue());
+            }
+
+            Number aggregatedNum = perIdAggregatedNum.get(metricId);
+            if (aggregatedNum == null) {
+              aggregatedNum = delta;
+            } else {
+              aggregatedNum = TimelineMetricCalculator.sum(delta, 
+                  aggregatedNum);
+            }
+            perIdAggregatedNum.put(metricId, aggregatedNum);
+
+            TimelineMetric oldAggregatedArea =
+                baseAggregatedArea.get(metricId);
+
+            // Record aggregation time.
+            long aggregatedTime = System.currentTimeMillis();
+            TimelineMetric newAggregatedMetrics = new TimelineMetric();
+            newAggregatedMetrics.addValue(aggregatedTime, aggregatedNum);
+
+            TimelineMetric newAggregatedArea = metric.aggregateTo(
+                oldAggregatedArea, latestTimelineMetrics, aggregatedTime,
+                TimelineMetric.Operation.SUM);
+
+            // cache aggregated metrics globally
+            baseAggregatedArea.put(metricId, newAggregatedMetrics);
+
+            // aggregated metrics updated on specific metricId
+            modifiedMetricMap.put(metricId, newAggregatedMetrics);
+            modifiedMetricMap.put(metricId + AREA_POSTFIX,
+                newAggregatedArea);
+
+            // update entityIdMap (cachedLatestMetrics) with latest metric on 
+            // specific entityId
+            entityIdMap.put(entityId, metric.getLatestSingleValueMetric());
+          }
+        }
+      }
+    }
+    return modifiedMetricMap;
   }
 
   public void putEntitiesAsync(TimelineEntities entities,

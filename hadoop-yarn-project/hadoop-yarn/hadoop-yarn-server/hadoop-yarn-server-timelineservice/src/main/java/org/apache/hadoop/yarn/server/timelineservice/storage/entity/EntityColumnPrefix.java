@@ -50,6 +50,11 @@ public enum EntityColumnPrefix implements ColumnPrefix<EntityTable> {
   EVENT(EntityColumnFamily.INFO, "e"),
 
   /**
+   * aggregated metrics for an application
+   */
+  AGGREGATED_METRICS(EntityColumnFamily.INFO, "a"),
+
+  /**
    * Config column stores configuration with config key as the column name.
    */
   CONFIG(EntityColumnFamily.CONFIGS, null),

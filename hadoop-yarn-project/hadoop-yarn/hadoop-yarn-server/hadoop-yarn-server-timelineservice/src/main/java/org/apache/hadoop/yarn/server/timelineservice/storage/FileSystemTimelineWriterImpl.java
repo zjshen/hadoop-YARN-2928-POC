@@ -24,6 +24,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
@@ -31,9 +32,11 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntities;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity;
+import org.apache.hadoop.yarn.api.records.timelineservice.TimelineMetric;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineWriteResponse;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineWriteResponse.TimelineWriteError;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.server.timelineservice.collector.TimelineCollectorContext;
 import org.apache.hadoop.yarn.util.timeline.TimelineUtils;
 
 /**
@@ -57,6 +60,8 @@ public class FileSystemTimelineWriterImpl extends AbstractService
 
   public static final String ENTITIES_DIR = "entities";
 
+  public static final String AGGREGATED_METRICS_DIR = "aggregated_metrics";
+
   /** Default extension for output files. */
   public static final String TIMELINE_SERVICE_STORAGE_EXTENSION = ".thist";
 
@@ -67,11 +72,18 @@ public class FileSystemTimelineWriterImpl extends AbstractService
   @Override
   public TimelineWriteResponse write(String clusterId, String userId,
       String flowName, String flowVersion, long flowRunId, String appId,
-      boolean newApp, TimelineEntities entities) throws IOException {
+      boolean newApp, TimelineEntities entities,
+      Map<String, TimelineMetric> aggregatedMetrics) throws IOException {
     TimelineWriteResponse response = new TimelineWriteResponse();
     for (TimelineEntity entity : entities.getEntities()) {
       write(clusterId, userId, flowName, flowVersion, flowRunId, appId, entity,
           response);
+    }
+    if (aggregatedMetrics != null && aggregatedMetrics.size() > 0) {
+      for (TimelineMetric aggregatedMetric : aggregatedMetrics.values()) {
+        write(clusterId, userId, flowName, flowVersion, flowRunId, appId,
+            aggregatedMetric, response);
+      }
     }
     return response;
   }
@@ -106,12 +118,37 @@ public class FileSystemTimelineWriterImpl extends AbstractService
       }
     }
   }
+  
+  private synchronized void write(String clusterId, String userId, String flowName,
+      String flowVersion, long flowRun, String appId, TimelineMetric metric,
+      TimelineWriteResponse response) throws IOException {
+    PrintWriter out = null;
+    try {
+      String dir = mkdirs(outputRoot, AGGREGATED_METRICS_DIR, clusterId, userId,
+          escape(flowName), escape(flowVersion), String.valueOf(flowRun), appId);
+      String fileName = dir + metric.getId() +
+          TIMELINE_SERVICE_STORAGE_EXTENSION;
+      out =
+          new PrintWriter(new BufferedWriter(new OutputStreamWriter(
+              new FileOutputStream(fileName, true), "UTF-8")));
+      out.println(metric.toString());
+      out.write("\n");
+    } catch (IOException ioe) {
+      TimelineWriteError error = new TimelineWriteError();
+      error.setEntityId(metric.getId());
+      error.setEntityType(metric.getType().toString());
+      response.addError(error);
+    } finally {
+      if (out != null) {
+        out.close();
+      }
+    }
+  }
 
   @Override
-  public TimelineWriteResponse aggregate(TimelineEntity data,
-      TimelineAggregationTrack track) throws IOException {
+  public TimelineWriteResponse aggregate(TimelineCollectorContext context,
+      TimelineEntity data, TimelineAggregationTrack track) throws IOException {
     return null;
-
   }
 
   public String getOutputRoot() {

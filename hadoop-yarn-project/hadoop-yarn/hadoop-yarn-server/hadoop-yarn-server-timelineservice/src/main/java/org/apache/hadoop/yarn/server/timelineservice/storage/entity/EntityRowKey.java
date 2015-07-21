@@ -106,6 +106,22 @@ public class EntityRowKey {
   }
 
   /**
+   * Constructs an application row key prefix as follows:
+   * {@code userName!clusterId!flowId!flowRunId!AppId}
+   * 
+   * @param clusterId
+   * @param userId
+   * @param flowId
+   * @param flowRunId
+   * @param appId
+   * @return
+   */
+  public static byte[] getRowKey(String clusterId, String userId,
+      String flowId, Long flowRunId, String appId) {
+    return getRowKeyPrefix(clusterId, userId, flowId, flowRunId, appId);
+  }
+
+  /**
    * Converts a timestamp into it's inverse timestamp to be used in (row) keys
    * where we want to have the most recent timestamp in the top of the table
    * (scans start at the most recent timestamp first).

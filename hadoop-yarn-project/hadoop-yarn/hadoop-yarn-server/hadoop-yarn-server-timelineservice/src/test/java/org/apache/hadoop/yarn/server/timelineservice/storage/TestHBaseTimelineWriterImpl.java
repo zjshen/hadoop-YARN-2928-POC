@@ -145,7 +145,7 @@ public class TestHBaseTimelineWriterImpl {
       String flowVersion = "AB7822C10F1111";
       long runid = 1002345678919L;
       String appName = "some app name";
-      hbi.write(cluster, user, flow, flowVersion, runid, appName, true, te);
+      hbi.write(cluster, user, flow, flowVersion, runid, appName, true, te, null);
       hbi.stop();
 
       hbr = new HBaseTimelineReaderImpl();
@@ -290,6 +290,21 @@ public class TestHBaseTimelineWriterImpl {
     assertEquals(te.getId(), Bytes.toString(rowKeyComponents[6]));
     return true;
   }
+  
+  
+  private boolean isRowKeyCorrect(byte[] rowKey, String cluster, String user,
+      String flow, Long runid, String appName) {
+
+    byte[][] rowKeyComponents = Separator.QUALIFIERS.split(rowKey, -1);
+
+    assertTrue(rowKeyComponents.length == 5);
+    assertEquals(user, Bytes.toString(rowKeyComponents[0]));
+    assertEquals(cluster, Bytes.toString(rowKeyComponents[1]));
+    assertEquals(flow, Bytes.toString(rowKeyComponents[2]));
+    assertEquals(EntityRowKey.invert(runid), Bytes.toLong(rowKeyComponents[3]));
+    assertEquals(appName, Bytes.toString(rowKeyComponents[4]));
+    return true;
+  }
 
   private void testAdditionalEntity() throws IOException {
     TimelineEvent event = new TimelineEvent();
@@ -316,7 +331,7 @@ public class TestHBaseTimelineWriterImpl {
       long runid = 1009876543218L;
       String appName = "some app name";
       hbi.write(cluster, user, flow, flowVersion, runid, appName, false,
-          entities);
+          entities, null);
       hbi.stop();
       // scan the table and see that entity exists
       Scan s = new Scan();
@@ -331,6 +346,58 @@ public class TestHBaseTimelineWriterImpl {
       for (Result result : scanner) {
         if (result != null && !result.isEmpty()) {
           rowCount++;
+        }
+      }
+      assertEquals(1, rowCount);
+
+    } finally {
+      hbi.stop();
+      hbi.close();
+    }
+  }
+  
+  private void testAggregatedMetrics() throws IOException {
+    TimelineMetric metric = new TimelineMetric();
+    String metricId = "CPU";
+    metric.setId(metricId);
+    metric.setType(TimelineMetric.Type.SINGLE_VALUE);
+    metric.addValue(1425016501000L, 1234567L);
+    Map<String, TimelineMetric> aggregatedMetrics = 
+        new HashMap<String, TimelineMetric>();
+    aggregatedMetrics.put(metricId, metric);
+
+    HBaseTimelineWriterImpl hbi = null;
+    try {
+      Configuration c1 = util.getConfiguration();
+      hbi = new HBaseTimelineWriterImpl(c1);
+      hbi.init(c1);
+      String cluster = "cluster3";
+      String user = "user3";
+      String flow = "any_flow_name";
+      String flowVersion = "1111F01C2287BC";
+      long runid = 1009876543219L;
+      String appName = "DR Who's app";
+      hbi.write(cluster, user, flow, flowVersion, runid, appName, false, null,
+        aggregatedMetrics);
+      hbi.stop();
+      // scan the table and see that entity exists
+      Scan s = new Scan();
+      byte[] startRow =
+          EntityRowKey.getRowKeyPrefix(cluster, user, flow, runid, appName);
+      s.setStartRow(startRow);
+      s.setMaxVersions(Integer.MAX_VALUE);
+      Connection conn = ConnectionFactory.createConnection(c1);
+      ResultScanner scanner = new EntityTable().getResultScanner(c1, conn, s);
+
+      int rowCount = 0;
+      for (Result result : scanner) {
+        if (result != null && !result.isEmpty()) {
+          rowCount++;
+          byte[] row1 = result.getRow();
+          assertTrue(isRowKeyCorrect(row1, cluster, user, flow, runid, appName));
+
+          // TODO verify aggregated value stored properly.
+
         }
       }
       assertEquals(1, rowCount);

@@ -60,7 +60,7 @@ public class TestPhoenixTimelineWriterImpl extends BaseTest {
     TimelineEntities te =
         TestTimelineWriterImpl.getStandardTestTimelineEntities(numEntity);
     writer.write("cluster_1", "user1", "testFlow", "version1", 1l, "app_test_1",
-        false, te);
+        false, te, null);
     // Verify if we're storing all entities
     String sql = "SELECT COUNT(entity_id) FROM "
         + PhoenixTimelineWriterImpl.ENTITY_TABLE_NAME;

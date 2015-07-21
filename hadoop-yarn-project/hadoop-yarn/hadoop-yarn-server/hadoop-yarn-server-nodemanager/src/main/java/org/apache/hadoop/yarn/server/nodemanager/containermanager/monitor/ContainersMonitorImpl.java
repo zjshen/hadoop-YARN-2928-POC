@@ -443,6 +443,22 @@ public class ContainersMonitorImpl extends AbstractService implements
               ContainerMetrics.forContainer(
                   containerId, containerMetricsPeriodMs).finished();
             }
+            if (publishContainerMetricsToTimelineService) {
+              // generate zero CPU/Memory metric for aggregation when container
+              // get finished.
+              TimelineEntity entity = 
+                  generateContainerEntity(containerId, 0.0F, 0L);
+              try {
+                TimelineClient timelineClient = context.getApplications().get(
+                    containerId.getApplicationAttemptId().getApplicationId()).
+                    getTimelineClient();
+                putEntityWithoutBlocking(timelineClient, entity);
+              } catch (Exception e) {
+                LOG.error("Exception in ContainersMonitorImpl in putting " +
+                    "zero resource usage metrics to timeline service when " +
+                    "container getting finished.", e);
+              }
+            }
             trackingContainers.remove(containerId);
             LOG.info("Stopping resource-monitoring for " + containerId);
           }
@@ -466,10 +482,9 @@ public class ContainersMonitorImpl extends AbstractService implements
           Map.Entry<ContainerId, ProcessTreeInfo> entry = it.next();
           ContainerId containerId = entry.getKey();
           ProcessTreeInfo ptInfo = entry.getValue();
-          
-          ContainerEntity entity = new ContainerEntity();
-          entity.setId(containerId.toString());
-          
+
+          ContainerEntity entity = null;
+
           try {
             String pId = ptInfo.getPID();
 
@@ -513,7 +528,6 @@ public class ContainersMonitorImpl extends AbstractService implements
             pTree.updateProcessTree();    // update process-tree
             long currentVmemUsage = pTree.getVirtualMemorySize();
             long currentPmemUsage = pTree.getRssMemorySize();
-            long currentTime = System.currentTimeMillis();
 
             // if machine has 6 cores and 3 are used,
             // cpuUsagePercentPerCore should be 300% and
@@ -557,25 +571,10 @@ public class ContainersMonitorImpl extends AbstractService implements
             }
 
             if (publishContainerMetricsToTimelineService) {
-              // if currentPmemUsage data is available
-              if (currentPmemUsage != 
-                  ResourceCalculatorProcessTree.UNAVAILABLE) {
-                TimelineMetric memoryMetric = new TimelineMetric();
-                memoryMetric.setId(ContainerMetric.MEMORY.toString() + pId);
-                memoryMetric.addValue(currentTime, currentPmemUsage);
-                entity.addMetric(memoryMetric);
-              }
-              // if cpuUsageTotalCoresPercentage data is available
-              if (cpuUsageTotalCoresPercentage != 
-                ResourceCalculatorProcessTree.UNAVAILABLE) {
-                TimelineMetric cpuMetric = new TimelineMetric();
-                cpuMetric.setId(ContainerMetric.CPU.toString() + pId);
-                cpuMetric.addValue(currentTime,
-                    cpuUsageTotalCoresPercentage);
-                entity.addMetric(cpuMetric);
-              }
+              entity = generateContainerEntity(containerId,
+                  cpuUsagePercentPerCore, currentPmemUsage);
             }
-            
+
             boolean isMemoryOverLimit = false;
             String msg = "";
             int containerExitStatus = ContainerExitStatus.INVALID;
@@ -668,6 +667,40 @@ public class ContainersMonitorImpl extends AbstractService implements
           break;
         }
       }
+    }
+
+    /**
+     * Generate container entity
+     * @param containerId
+     * @param cpuValue
+     * @param memoryValue
+     * @return
+     */
+    private ContainerEntity generateContainerEntity(
+        ContainerId containerId, float cpuValue, long memoryValue) {
+
+      ContainerEntity entity = new ContainerEntity();
+      entity.setId(containerId.toString());
+
+      long currentTime = System.currentTimeMillis();
+
+      if (cpuValue != ResourceCalculatorProcessTree.UNAVAILABLE) {
+        TimelineMetric cpuMetric = new TimelineMetric();
+        cpuMetric.setId(ContainerMetric.CPU.toString());
+        cpuMetric.addValue(currentTime, new Float(cpuValue));
+        cpuMetric.setToAggregate(true);
+        entity.addMetric(cpuMetric);
+      }
+
+      if (memoryValue != ResourceCalculatorProcessTree.UNAVAILABLE) {
+        TimelineMetric memoryMetric = new TimelineMetric();
+        memoryMetric.setId(ContainerMetric.MEMORY.toString());
+        memoryMetric.addValue(currentTime, new Long(memoryValue));
+        memoryMetric.setToAggregate(true);
+        entity.addMetric(memoryMetric);
+      }
+
+      return entity;
     }
     
     private void putEntityWithoutBlocking(final TimelineClient timelineClient, 

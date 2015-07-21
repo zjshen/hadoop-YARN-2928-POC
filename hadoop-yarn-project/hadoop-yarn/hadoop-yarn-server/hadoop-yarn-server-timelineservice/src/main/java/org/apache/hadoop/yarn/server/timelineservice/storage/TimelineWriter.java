@@ -18,13 +18,16 @@
 package org.apache.hadoop.yarn.server.timelineservice.storage;
 
 import java.io.IOException;
+import java.util.Map;
 
 import org.apache.hadoop.classification.InterfaceAudience;
 import org.apache.hadoop.classification.InterfaceStability;
 import org.apache.hadoop.service.Service;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntities;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity;
+import org.apache.hadoop.yarn.api.records.timelineservice.TimelineMetric;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineWriteResponse;
+import org.apache.hadoop.yarn.server.timelineservice.collector.TimelineCollectorContext;
 
 /**
  * This interface is for storing application timeline information.
@@ -47,12 +50,14 @@ public interface TimelineWriter extends Service {
    * @param newApp the flag to indicate if the entity is assocated to a new app
    * @param data
    *          a {@link TimelineEntities} object.
+   * @param aggregatedMetrics
    * @return a {@link TimelineWriteResponse} object.
    * @throws IOException
    */
   TimelineWriteResponse write(String clusterId, String userId,
       String flowName, String flowVersion, long flowRunId, String appId,
-      boolean newApp, TimelineEntities data) throws IOException;
+      boolean newApp, TimelineEntities data,
+      Map<String, TimelineMetric> aggregatedMetrics) throws IOException;
 
   /**
    * Aggregates the entity information to the timeline store based on which
@@ -69,6 +74,6 @@ public interface TimelineWriter extends Service {
    * @return a {@link TimelineWriteResponse} object.
    * @throws IOException
    */
-  TimelineWriteResponse aggregate(TimelineEntity data,
-      TimelineAggregationTrack track) throws IOException;
+  TimelineWriteResponse aggregate(TimelineCollectorContext context,
+      TimelineEntity data, TimelineAggregationTrack track) throws IOException;
 }

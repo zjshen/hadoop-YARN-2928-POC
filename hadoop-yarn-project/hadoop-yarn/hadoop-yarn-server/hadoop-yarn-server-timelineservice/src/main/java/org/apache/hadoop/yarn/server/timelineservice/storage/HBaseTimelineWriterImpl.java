@@ -18,6 +18,7 @@
 package org.apache.hadoop.yarn.server.timelineservice.storage;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
@@ -31,6 +32,7 @@ import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.service.AbstractService;
+import org.apache.hadoop.yarn.server.timelineservice.collector.TimelineCollectorContext;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntities;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEvent;
@@ -45,6 +47,7 @@ import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityColumn
 import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityColumnPrefix;
 import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityRowKey;
 import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityTable;
+import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntityType;
 
 /**
  * This implements a hbase based backend for storing application timeline entity
@@ -89,37 +92,46 @@ public class HBaseTimelineWriterImpl extends AbstractService implements
   @Override
   public TimelineWriteResponse write(String clusterId, String userId,
       String flowName, String flowVersion, long flowRunId, String appId,
-      boolean newApp,TimelineEntities data) throws IOException {
+      boolean newApp,TimelineEntities data,
+      Map<String, TimelineMetric> aggregatedMetrics) 
+      throws IOException {
 
     TimelineWriteResponse putStatus = new TimelineWriteResponse();
-    for (TimelineEntity te : data.getEntities()) {
+    byte[] rowKey;
 
-      // a set can have at most 1 null
-      if (te == null) {
-        continue;
+    // data is possible to be null if writer only want to write aggregated 
+    // metrics
+
+    if (data != null) {
+      for (TimelineEntity te : data.getEntities()) {
+
+        // a set can have at most 1 null
+        if (te == null) {
+          continue;
+        }
+
+        rowKey =
+            EntityRowKey.getRowKey(clusterId, userId, flowName, flowRunId, appId,
+                te.getType(), te.getId());
+
+        storeInfo(rowKey, te, flowVersion);
+        storeEvents(rowKey, te.getEvents());
+        storeConfig(rowKey, te.getConfigs());
+        storeMetrics(rowKey, te.getMetrics());
+        storeRelations(rowKey, te.getIsRelatedToEntities(),
+            EntityColumnPrefix.IS_RELATED_TO);
+        storeRelations(rowKey, te.getRelatesToEntities(),
+            EntityColumnPrefix.RELATES_TO);
+
+        LOG.info(te.getIdentifier() + " is written");
       }
-
-      byte[] rowKey =
-          EntityRowKey.getRowKey(clusterId, userId, flowName, flowRunId, appId,
-              te.getType(), te.getId());
-
-      storeInfo(rowKey, te, flowVersion);
-      storeEvents(rowKey, te.getEvents());
-      storeConfig(rowKey, te.getConfigs());
-      storeMetrics(rowKey, te.getMetrics());
-      storeRelations(rowKey, te.getIsRelatedToEntities(),
-          EntityColumnPrefix.IS_RELATED_TO);
-      storeRelations(rowKey, te.getRelatesToEntities(),
-          EntityColumnPrefix.RELATES_TO);
-
-      LOG.info(te.getIdentifier() + " is written");
-    }
-    if (data.getEntities().size() > 0) {
-      entityTable.flush();
+      if (data.getEntities().size() > 0) {
+        entityTable.flush();
+      }
     }
 
     if (newApp) {
-      byte[] rowKey = App2FlowRowKey.getRowKey(clusterId, appId);
+      rowKey = App2FlowRowKey.getRowKey(clusterId, appId);
       App2FlowColumn.FLOW_ID.store(rowKey, app2FlowTable, null, flowName);
       App2FlowColumn.FLOW_RUN_ID.store(rowKey, app2FlowTable, null, flowRunId);
       app2FlowTable.flush();
@@ -127,6 +139,24 @@ public class HBaseTimelineWriterImpl extends AbstractService implements
           flowName + ", flowRunId=" + flowRunId +" is written");
 
     }
+    
+    if (aggregatedMetrics != null) {
+      // generate aggregation entity
+      TimelineEntity aggregationEntity = new TimelineEntity();
+      aggregationEntity.setId(appId);
+      aggregationEntity.setType(
+        TimelineEntityType.YARN_APPLICATION_AGGREGATION.toString());
+
+      rowKey = EntityRowKey.getRowKey(clusterId, userId, flowName, flowRunId,
+          appId);
+      storeMetrics(rowKey,
+          new HashSet<TimelineMetric>(aggregatedMetrics.values()));
+
+     /* for (TimelineMetric metric : aggregatedMetrics.values()) {
+        storeAggregatedMetrics(rowKey, metric);
+      }*/
+    }
+    
     return putStatus;
   }
 
@@ -173,6 +203,23 @@ public class HBaseTimelineWriterImpl extends AbstractService implements
     for (Map.Entry<String, String> entry : config.entrySet()) {
       EntityColumnPrefix.CONFIG.store(rowKey, entityTable, entry.getKey(),
           null, entry.getValue());
+    }
+  }
+  
+  
+  /**
+   * stores the aggregated metrics information
+   * TODO move it out to a separated application table
+   * TODO no get used in PoC.
+   */
+  private void storeAggregatedMetrics(byte[] rowKey, TimelineMetric metric)
+      throws IOException {
+    if (metric == null) {
+      return;
+    }
+    for (Long timestamp : metric.getValues().keySet()) {
+      EntityColumnPrefix.AGGREGATED_METRICS.store(rowKey, entityTable,
+          metric.getId(), timestamp, metric.getValues().get(timestamp));
     }
   }
 
@@ -228,8 +275,8 @@ public class HBaseTimelineWriterImpl extends AbstractService implements
   }
 
   @Override
-  public TimelineWriteResponse aggregate(TimelineEntity data,
-      TimelineAggregationTrack track) throws IOException {
+  public TimelineWriteResponse aggregate(TimelineCollectorContext context,
+      TimelineEntity data, TimelineAggregationTrack track) throws IOException {
     return null;
   }
 

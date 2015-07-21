@@ -126,7 +126,8 @@ public class PhoenixTimelineWriterImpl extends AbstractService
   @Override
   public TimelineWriteResponse write(String clusterId, String userId,
       String flowName, String flowVersion, long flowRunId, String appId,
-      boolean newApp, TimelineEntities entities) throws IOException {
+      boolean newApp, TimelineEntities entities,
+      Map<String, TimelineMetric> aggregatedMetrics) throws IOException {
     TimelineWriteResponse response = new TimelineWriteResponse();
     TimelineCollectorContext currContext = new TimelineCollectorContext(
         clusterId, userId, flowName, flowVersion, flowRunId, appId);
@@ -167,7 +168,7 @@ public class PhoenixTimelineWriterImpl extends AbstractService
   }
 
   /**
-   * Aggregates the entity information to the timeline store based on which
+   * Write the aggregated information to the timeline store based on which
    * track this entity is to be rolled up to The tracks along which aggregations
    * are to be done are given by {@link TimelineAggregationTrack}
    *
@@ -175,16 +176,15 @@ public class PhoenixTimelineWriterImpl extends AbstractService
    * in the response.
    *
    * @param data
-   *          a {@link TimelineEntity} object
+   *          a {@link TimelineMetric} object
    *          a {@link TimelineAggregationTrack} enum value
    * @return a {@link TimelineWriteResponse} object.
    * @throws IOException
    */
   @Override
-  public TimelineWriteResponse aggregate(TimelineEntity data,
-      TimelineAggregationTrack track) throws IOException {
+  public TimelineWriteResponse aggregate(TimelineCollectorContext context,
+      TimelineEntity data, TimelineAggregationTrack track) throws IOException {
     return null;
-
   }
 
   // Utility functions
