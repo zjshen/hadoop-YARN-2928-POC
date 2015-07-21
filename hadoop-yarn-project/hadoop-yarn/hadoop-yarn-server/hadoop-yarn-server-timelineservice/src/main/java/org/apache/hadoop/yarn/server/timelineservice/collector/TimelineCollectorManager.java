@@ -157,12 +157,12 @@ public class TimelineCollectorManager extends AbstractService {
     Runnable removeAppWrapper = new Runnable() {
       public void run() {
         try {
+          // sleep 60 seconds by default.
+          Thread.sleep(collectorDelayTime);
           TimelineCollector collector = collectors.remove(appId);
           if (collector == null) {
             LOG.error("the collector for " + appId + " does not exist!");
           } else {
-            // sleep 60 seconds by default.
-            Thread.sleep(collectorDelayTime);
             postRemove(appId, collector);
             // stop the service to do clean up
             collector.stop();
