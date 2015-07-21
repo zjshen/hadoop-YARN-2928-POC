@@ -199,6 +199,7 @@ public abstract class TimelineCollector extends CompositeService {
             // Record aggregation time.
             long aggregatedTime = System.currentTimeMillis();
             TimelineMetric newAggregatedMetrics = new TimelineMetric();
+            newAggregatedMetrics.setId(metricId);
             newAggregatedMetrics.setToAggregate(true);
             newAggregatedMetrics.addValue(aggregatedTime, aggregatedNum);
 

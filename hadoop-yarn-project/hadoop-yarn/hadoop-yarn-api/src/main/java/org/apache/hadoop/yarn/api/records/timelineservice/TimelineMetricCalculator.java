@@ -28,6 +28,7 @@ public class TimelineMetricCalculator {
       Number n1 = metric1.retrieveSingleDataValue();
       Number n2 = metric2.retrieveSingleDataValue();
       TimelineMetric metric = new TimelineMetric();
+      metric.setId(metric1.getId());
       metric.addValue(timestamp, sub(n1, n2));
       metric.setToAggregate(true);
       return metric;
