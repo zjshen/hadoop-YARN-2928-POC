@@ -37,7 +37,9 @@ import org.apache.hadoop.classification.InterfaceAudience.Private;
 import org.apache.hadoop.classification.InterfaceStability.Unstable;
 import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.timeline.TimelineAbout;
+import org.apache.hadoop.yarn.api.records.timelineservice.TimelineAggregateBasis;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity;
+import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntityType;
 import org.apache.hadoop.yarn.server.timeline.GenericObjectMapper;
 import org.apache.hadoop.yarn.server.timelineservice.storage.TimelineReader.Field;
 import org.apache.hadoop.yarn.util.timeline.TimelineUtils;
@@ -166,6 +168,33 @@ public class TimelineReaderWebServices {
         parseKeyStrValuesStr(isRelatedTo), parseKeyObjValueStr(infoFilters),
         parseKeyStrValueStr(configFilters), parseValuesStr(metricFilters),
         parseValuesStr(eventFilters), parseFieldsStr(fields), callerUGI);
+  }
+
+  @GET
+  @Path("/aggregates/{basis}/{clusterId}/{aggregateId}")
+  @Produces(MediaType.APPLICATION_JSON)
+  public TimelineEntity getAggregates(
+      @Context HttpServletRequest req,
+      @Context HttpServletResponse res,
+      @PathParam("basis") String basis,
+      @PathParam("clusterId") String clusterId,
+      @PathParam("aggregateId") String aggEntityId,
+      @QueryParam("userId") String userId) throws IOException {
+    init(res);
+    UserGroupInformation callerUGI = getUser(req);
+    switch (TimelineAggregateBasis.valueOf(basis)) {
+      case APPLICATION:
+        return getTimelineReaderManager().getEntity(userId, clusterId, null,
+            null, aggEntityId,
+            TimelineEntityType.YARN_APPLICATION_AGGREGATION.toString(),
+            aggEntityId, EnumSet.of(Field.METRICS), callerUGI);
+      case FLOW:
+        return null;
+      case USER:
+        return null;
+      default:
+        throw new NotFoundException("Unsupported aggregate basis: " + basis);
+    }
   }
 
   private static EnumSet<Field> parseFieldsStr(String str) {
