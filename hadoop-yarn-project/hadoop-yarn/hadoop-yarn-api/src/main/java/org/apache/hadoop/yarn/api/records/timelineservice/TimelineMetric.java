@@ -144,7 +144,8 @@ public class TimelineMetric {
           this.getValues().entrySet()) {
         Long t2 = timeSeriesData.getKey();
         Number n2 = timeSeriesData.getValue();
-        Number delta = null;
+        // set delta to 0 instead of null.
+        Number delta = getZero(n2);
         // t1 = null means this is the first value get aggregated, delta should 
         // be null.
         if (t1 != null) {
@@ -229,6 +230,32 @@ public class TimelineMetric {
     
     // TODO throw warnings/exceptions for other types of number.
     return null;
+  }
+
+  // TODO make it a static method.
+  private Number getZero(Number n1) {
+    if (n1 == null) {
+      throw new YarnRuntimeException("Input number should not be null.");
+    }
+
+    if (n1 instanceof Integer){
+      return 0;
+    }
+
+    if (n1 instanceof Long) {
+      return 0L;
+    }
+
+    if (n1 instanceof Float) {
+      return 0.0F;
+    }
+
+    if (n1 instanceof Double) {
+      return 0.0D;
+    }
+    
+    throw new YarnRuntimeException("Input number type is not supported, we " +
+        "only support Integer, Long, Float, Double.");
   }
   
   /**
