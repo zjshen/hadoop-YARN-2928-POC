@@ -113,6 +113,13 @@ public enum EntityColumnPrefix implements ColumnPrefix<EntityTable> {
   public void store(byte[] rowKey,
       TypedBufferedMutator<EntityTable> tableMutator, String qualifier,
       Long timestamp, Object inputValue) throws IOException {
+    store(rowKey, tableMutator, qualifier, null, timestamp, inputValue);
+  }
+
+  public void store(byte[] rowKey,
+      TypedBufferedMutator<EntityTable> tableMutator, String qualifier,
+      String columnPostfix, Long timestamp, Object inputValue)
+      throws IOException {
 
     // Null check
     if (qualifier == null) {
@@ -122,6 +129,11 @@ public enum EntityColumnPrefix implements ColumnPrefix<EntityTable> {
 
     byte[] columnQualifier =
         ColumnHelper.getColumnQualifier(this.columnPrefixBytes, qualifier);
+    
+    if (columnPostfix != null) {
+      columnQualifier = Separator.VALUES.join(columnQualifier,
+          Bytes.toBytes(columnPostfix));
+    }
 
     column.store(rowKey, tableMutator, columnQualifier, timestamp, inputValue);
   }

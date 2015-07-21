@@ -29,6 +29,7 @@ public class TimelineMetricCalculator {
       Number n2 = metric2.retrieveSingleDataValue();
       TimelineMetric metric = new TimelineMetric();
       metric.addValue(timestamp, sub(n1, n2));
+      metric.setToAggregate(true);
       return metric;
     } else {
       throw new YarnRuntimeException("Substract operation on TimelineMetrics " +

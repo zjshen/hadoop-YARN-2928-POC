@@ -232,11 +232,14 @@ public class HBaseTimelineWriterImpl extends AbstractService implements
     if (metrics != null) {
       for (TimelineMetric metric : metrics) {
         String metricColumnQualifier = metric.getId();
+        String toAggregate = metric.getToAggregate() ? "1" : "0";
+        
         Map<Long, Number> timeseries = metric.getValues();
         for (Map.Entry<Long, Number> timeseriesEntry : timeseries.entrySet()) {
           Long timestamp = timeseriesEntry.getKey();
           EntityColumnPrefix.METRIC.store(rowKey, entityTable,
-              metricColumnQualifier, timestamp, timeseriesEntry.getValue());
+              metricColumnQualifier, toAggregate, timestamp,
+              timeseriesEntry.getValue());
         }
       }
     }
