@@ -177,11 +177,11 @@ public abstract class TimelineCollector extends CompositeService {
             Number delta = null;
             // new added metric for specific entityId
             if (latestTimelineMetrics == null) {
-              delta = metric.getSingleDataValue();
+              delta = metric.retrieveSingleDataValue();
             } else {
               delta = TimelineMetricCalculator.sub(
-                  metric.getSingleDataValue(), 
-                  latestTimelineMetrics.getSingleDataValue());
+                  metric.retrieveSingleDataValue(), 
+                  latestTimelineMetrics.retrieveSingleDataValue());
             }
 
             Number aggregatedNum = perIdAggregatedNum.get(metricId);
@@ -215,7 +215,7 @@ public abstract class TimelineCollector extends CompositeService {
 
             // update entityIdMap (cachedLatestMetrics) with latest metric on 
             // specific entityId
-            entityIdMap.put(entityId, metric.getLatestSingleValueMetric());
+            entityIdMap.put(entityId, metric.retrieveLatestSingleValueMetric());
           }
         }
       }

@@ -181,7 +181,7 @@ public class TimelineMetric {
   }
 
   // get latest timeline metric as single value type
-  public TimelineMetric getLatestSingleValueMetric() {
+  public TimelineMetric retrieveLatestSingleValueMetric() {
     if (this.getType().equals(Type.SINGLE_VALUE)) {
       return this;
     } else {
@@ -279,7 +279,7 @@ public class TimelineMetric {
     return values;
   }
 
-  public long getSingleDataKey() {
+  public long retrieveSingleDataKey() {
     if (this.type.equals(Type.SINGLE_VALUE)) {
       if (values.size() == 0) {
           throw new YarnRuntimeException("Values for this timeline metric is " +
@@ -293,7 +293,7 @@ public class TimelineMetric {
     }
   }
 
-  public Number getSingleDataValue() {
+  public Number retrieveSingleDataValue() {
     if (this.type.equals(Type.SINGLE_VALUE)) {
       if (values.size() == 0) {
           return null;

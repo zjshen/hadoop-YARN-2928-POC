@@ -25,8 +25,8 @@ public class TimelineMetricCalculator {
       TimelineMetric metric2, long timestamp) {
     if (metric1.getType().equals(TimelineMetric.Type.SINGLE_VALUE) &&
         metric2.getType().equals(TimelineMetric.Type.SINGLE_VALUE)) {
-      Number n1 = metric1.getSingleDataValue();
-      Number n2 = metric2.getSingleDataValue();
+      Number n1 = metric1.retrieveSingleDataValue();
+      Number n2 = metric2.retrieveSingleDataValue();
       TimelineMetric metric = new TimelineMetric();
       metric.addValue(timestamp, sub(n1, n2));
       return metric;
