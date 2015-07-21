@@ -37,6 +37,7 @@ import org.apache.hadoop.hbase.client.Admin;
 import org.apache.hadoop.hbase.client.Connection;
 import org.apache.hadoop.hbase.client.ConnectionFactory;
 import org.apache.hadoop.util.GenericOptionsParser;
+import org.apache.hadoop.yarn.server.timelineservice.storage.app2flow.App2FlowTable;
 import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityTable;
 
 /**
@@ -120,6 +121,7 @@ public class TimelineSchemaCreator {
         throw new IOException("Cannot create table since admin is null");
       }
       new EntityTable().createTable(admin, hbaseConf);
+      new App2FlowTable().createTable(admin, hbaseConf);
     } finally {
       if (conn != null) {
         conn.close();

@@ -100,7 +100,7 @@ public class TimelineServiceV2Publisher extends
     tEvent.setTimestamp(event.getTimestamp());
     entity.addEvent(tEvent);
 
-    putEntity(entity, event.getApplicationId());
+    putEntity(entity, event.getApplicationId(), true);
   }
 
   @Override
@@ -264,6 +264,11 @@ public class TimelineServiceV2Publisher extends
   }
 
   private void putEntity(TimelineEntity entity, ApplicationId appId) {
+    putEntity(entity, appId, false);
+  }
+
+  private void putEntity(TimelineEntity entity, ApplicationId appId,
+      boolean newApp) {
     try {
       if (LOG.isDebugEnabled()) {
         LOG.debug("Publishing the entity " + entity + ", JSON-style content: "
@@ -273,8 +278,10 @@ public class TimelineServiceV2Publisher extends
           rmTimelineCollectorManager.get(appId);
       TimelineEntities entities = new TimelineEntities();
       entities.addEntity(entity);
-      timelineCollector.putEntities(entities,
+      timelineCollector.putEntities(entities, newApp,
           UserGroupInformation.getCurrentUser());
+      LOG.info("Put entities:");
+      LOG.info(TimelineUtils.dumpTimelineRecordtoJSON(entities, true));
     } catch (Exception e) {
       LOG.error("Error when publishing entity " + entity, e);
     }

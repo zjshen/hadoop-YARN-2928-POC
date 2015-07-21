@@ -43,6 +43,7 @@ import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEvent;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineMetric;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
+import org.apache.hadoop.yarn.server.timelineservice.storage.common.TimelineReaderUtils;
 import org.apache.hadoop.yarn.webapp.YarnJacksonJaxbJsonProvider;
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -153,27 +154,6 @@ public class FileSystemTimelineReaderImpl extends AbstractService
     }
   }
 
-  private static boolean matchFilter(Object infoValue, Object filterValue) {
-    return infoValue.equals(filterValue);
-  }
-
-  private static boolean matchFilters(Map<String, ? extends Object> entityInfo,
-      Map<String, ? extends Object> filters) {
-    if (entityInfo == null || entityInfo.isEmpty()) {
-      return false;
-    }
-    for (Map.Entry<String, ? extends Object> filter : filters.entrySet()) {
-      Object infoValue = entityInfo.get(filter.getKey());
-      if (infoValue == null) {
-        return false;
-      }
-      if (!matchFilter(infoValue, filter.getValue())) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   private String getFlowRunPath(String userId, String clusterId, String flowId,
       Long flowRunId, String appId)
       throws IOException {
@@ -207,36 +187,6 @@ public class FileSystemTimelineReaderImpl extends AbstractService
     throw new IOException("Unable to get flow info");
   }
 
-  private static boolean matchMetricFilters(Set<TimelineMetric> metrics,
-      Set<String> metricFilters) {
-    Set<String> tempMetrics = new HashSet<String>();
-    for (TimelineMetric metric : metrics) {
-      tempMetrics.add(metric.getId());
-    }
-
-    for (String metricFilter : metricFilters) {
-      if (!tempMetrics.contains(metricFilter)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  private static boolean matchEventFilters(Set<TimelineEvent> entityEvents,
-      Set<String> eventFilters) {
-    Set<String> tempEvents = new HashSet<String>();
-    for (TimelineEvent event : entityEvents) {
-      tempEvents.add(event.getId());
-    }
-
-    for (String eventFilter : eventFilters) {
-      if (!tempEvents.contains(eventFilter)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   private static TimelineEntity createEntityToBeReturned(TimelineEntity entity,
       EnumSet<Field> fieldsToRetrieve) {
     TimelineEntity entityToBeReturned = new TimelineEntity();
@@ -252,23 +202,6 @@ public class FileSystemTimelineReaderImpl extends AbstractService
   private static boolean isTimeInRange(Long time, Long timeBegin,
       Long timeEnd) {
     return (time >= timeBegin) && (time <= timeEnd);
-  }
-
-  private static boolean matchRelations(
-      Map<String, Set<String>> entityRelations,
-      Map<String, Set<String>> relations) {
-    for (Map.Entry<String, Set<String>> relation : relations.entrySet()) {
-      Set<String> ids = entityRelations.get(relation.getKey());
-      if (ids == null) {
-        return false;
-      }
-      for (String id : relation.getValue()) {
-        if (!ids.contains(id)) {
-          return false;
-        }
-      }
-    }
-    return true;
   }
 
   private static void mergeEntities(TimelineEntity entity1,
@@ -393,27 +326,32 @@ public class FileSystemTimelineReaderImpl extends AbstractService
           continue;
         }
         if (relatesTo != null && !relatesTo.isEmpty() &&
-            !matchRelations(entity.getRelatesToEntities(), relatesTo)) {
+            !TimelineReaderUtils
+                .matchRelations(entity.getRelatesToEntities(), relatesTo)) {
           continue;
         }
         if (isRelatedTo != null && !isRelatedTo.isEmpty() &&
-            !matchRelations(entity.getIsRelatedToEntities(), isRelatedTo)) {
+            !TimelineReaderUtils
+                .matchRelations(entity.getIsRelatedToEntities(), isRelatedTo)) {
           continue;
         }
         if (infoFilters != null && !infoFilters.isEmpty() &&
-            !matchFilters(entity.getInfo(), infoFilters)) {
+            !TimelineReaderUtils.matchFilters(entity.getInfo(), infoFilters)) {
           continue;
         }
         if (configFilters != null && !configFilters.isEmpty() &&
-            !matchFilters(entity.getConfigs(), configFilters)) {
+            !TimelineReaderUtils.matchFilters(
+                entity.getConfigs(), configFilters)) {
           continue;
         }
         if (metricFilters != null && !metricFilters.isEmpty() &&
-            !matchMetricFilters(entity.getMetrics(), metricFilters)) {
+            !TimelineReaderUtils.matchMetricFilters(
+                entity.getMetrics(), metricFilters)) {
           continue;
         }
         if (eventFilters != null && !eventFilters.isEmpty() &&
-            !matchEventFilters(entity.getEvents(), eventFilters)) {
+            !TimelineReaderUtils.matchEventFilters(
+                entity.getEvents(), eventFilters)) {
           continue;
         }
         TimelineEntity entityToBeReturned =

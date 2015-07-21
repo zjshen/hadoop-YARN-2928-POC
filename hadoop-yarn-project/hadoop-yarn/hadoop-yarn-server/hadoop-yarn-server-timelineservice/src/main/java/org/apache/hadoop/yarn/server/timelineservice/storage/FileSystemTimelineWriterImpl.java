@@ -67,7 +67,7 @@ public class FileSystemTimelineWriterImpl extends AbstractService
   @Override
   public TimelineWriteResponse write(String clusterId, String userId,
       String flowName, String flowVersion, long flowRunId, String appId,
-      TimelineEntities entities) throws IOException {
+      boolean newApp, TimelineEntities entities) throws IOException {
     TimelineWriteResponse response = new TimelineWriteResponse();
     for (TimelineEntity entity : entities.getEntities()) {
       write(clusterId, userId, flowName, flowVersion, flowRunId, appId, entity,

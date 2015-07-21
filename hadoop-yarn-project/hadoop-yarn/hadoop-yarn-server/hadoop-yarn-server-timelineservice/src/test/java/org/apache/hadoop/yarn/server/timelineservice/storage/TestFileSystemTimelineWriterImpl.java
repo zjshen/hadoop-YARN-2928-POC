@@ -58,7 +58,7 @@ public class TestFileSystemTimelineWriterImpl {
       fsi.init(new YarnConfiguration());
       fsi.start();
       fsi.write("cluster_id", "user_id", "flow_name", "flow_version", 12345678L,
-          "app_id", te);
+          "app_id", false, te);
 
       String fileName = fsi.getOutputRoot() +
           "/entities/cluster_id/user_id/flow_name/flow_version/12345678/app_id/" +

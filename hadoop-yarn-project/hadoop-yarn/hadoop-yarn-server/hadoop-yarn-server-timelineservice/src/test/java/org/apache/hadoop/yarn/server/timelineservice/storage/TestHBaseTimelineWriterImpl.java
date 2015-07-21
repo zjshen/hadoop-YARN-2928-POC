@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -43,6 +44,7 @@ import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEvent;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineMetric;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineMetric.Type;
+import org.apache.hadoop.yarn.server.timelineservice.storage.app2flow.App2FlowTable;
 import org.apache.hadoop.yarn.server.timelineservice.storage.common.Separator;
 import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityColumn;
 import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityColumnPrefix;
@@ -68,6 +70,8 @@ public class TestHBaseTimelineWriterImpl {
 
   private static void createSchema() throws IOException {
     new EntityTable()
+        .createTable(util.getHBaseAdmin(), util.getConfiguration());
+    new App2FlowTable()
         .createTable(util.getHBaseAdmin(), util.getConfiguration());
   }
 
@@ -130,6 +134,7 @@ public class TestHBaseTimelineWriterImpl {
     te.addEntity(entity);
 
     HBaseTimelineWriterImpl hbi = null;
+    HBaseTimelineReaderImpl hbr = null;
     try {
       Configuration c1 = util.getConfiguration();
       hbi = new HBaseTimelineWriterImpl(c1);
@@ -140,8 +145,29 @@ public class TestHBaseTimelineWriterImpl {
       String flowVersion = "AB7822C10F1111";
       long runid = 1002345678919L;
       String appName = "some app name";
-      hbi.write(cluster, user, flow, flowVersion, runid, appName, te);
+      hbi.write(cluster, user, flow, flowVersion, runid, appName, true, te);
       hbi.stop();
+
+      hbr = new HBaseTimelineReaderImpl();
+      hbr.init(c1);
+      hbr.start();
+      TimelineEntity e1 = hbr.getEntity(user, cluster, flow, runid, appName,
+          entity.getType(), entity.getId(), EnumSet.of(TimelineReader.Field.ALL));
+      TimelineEntity e2 = hbr.getEntity(user, cluster, null, null, appName,
+          entity.getType(), entity.getId(), EnumSet.of(TimelineReader.Field.ALL));
+      Set<TimelineEntity> es1 = hbr.getEntities(user, cluster, flow, runid,
+          appName, entity.getType(), null, null, null, null, null, null, null,
+          null, null, null, null, EnumSet.of(TimelineReader.Field.ALL));
+      Set<TimelineEntity> es2 = hbr.getEntities(user, cluster, null, null,
+          appName, entity.getType(), null, null, null, null, null, null, null,
+          null, null, null, null, EnumSet.of(TimelineReader.Field.ALL));
+      hbr.stop();
+      assertNotNull(e1);
+      assertNotNull(e2);
+      assertEquals(e1, e2);
+      assertEquals(1, es1.size());
+      assertEquals(1, es2.size());
+      assertEquals(es1, es2);
 
       // scan the table and see that entity exists
       Scan s = new Scan();
@@ -289,7 +315,8 @@ public class TestHBaseTimelineWriterImpl {
       String flowVersion = "1111F01C2287BA";
       long runid = 1009876543218L;
       String appName = "some app name";
-      hbi.write(cluster, user, flow, flowVersion, runid, appName, entities);
+      hbi.write(cluster, user, flow, flowVersion, runid, appName, false,
+          entities);
       hbi.stop();
       // scan the table and see that entity exists
       Scan s = new Scan();

@@ -68,6 +68,11 @@ public abstract class TimelineCollector extends CompositeService {
     this.writer = w;
   }
 
+  public TimelineWriteResponse putEntities(TimelineEntities entities,
+      UserGroupInformation callerUgi) throws IOException {
+    return putEntities(entities, false, callerUgi);
+  }
+
   /**
    * Handles entity writes. These writes are synchronous and are written to the
    * backing storage without buffering/batching. If any entity already exists,
@@ -75,24 +80,30 @@ public abstract class TimelineCollector extends CompositeService {
    *
    * This method should be reserved for selected critical entities and events.
    * For normal voluminous writes one should use the async method
-   * {@link #putEntitiesAsync(TimelineEntities, UserGroupInformation)}.
+   * {@link #putEntitiesAsync(TimelineEntities, boolean, UserGroupInformation)}.
    *
    * @param entities entities to post
+   * @param newApp the flag indicate the start of a new app
    * @param callerUgi the caller UGI
    * @return the response that contains the result of the post.
    */
   public TimelineWriteResponse putEntities(TimelineEntities entities,
-      UserGroupInformation callerUgi) throws IOException {
+      boolean newApp, UserGroupInformation callerUgi) throws IOException {
     if (LOG.isDebugEnabled()) {
       LOG.debug("SUCCESS - TIMELINE V2 PROTOTYPE");
-      LOG.debug("putEntities(entities=" + entities + ", callerUgi="
-          + callerUgi + ")");
+      LOG.debug("putEntities(entities=" + entities + ", newApp =" + newApp +
+          ", callerUgi="  + callerUgi + ")");
     }
 
     TimelineCollectorContext context = getTimelineEntityContext();
     return writer.write(context.getClusterId(), context.getUserId(),
         context.getFlowName(), context.getFlowVersion(), context.getFlowRunId(),
-        context.getAppId(), entities);
+        context.getAppId(), newApp, entities);
+  }
+
+  public void putEntitiesAsync(TimelineEntities entities,
+      UserGroupInformation callerUgi) {
+    putEntitiesAsync(entities, false, callerUgi);
   }
 
   /**
@@ -104,14 +115,15 @@ public abstract class TimelineCollector extends CompositeService {
    * storage.
    *
    * @param entities entities to post
+   * @param newApp the flag indicate the start of a new app
    * @param callerUgi the caller UGI
    */
   public void putEntitiesAsync(TimelineEntities entities,
-      UserGroupInformation callerUgi) {
+      boolean newApp, UserGroupInformation callerUgi) {
     // TODO implement
     if (LOG.isDebugEnabled()) {
-      LOG.debug("putEntitiesAsync(entities=" + entities + ", callerUgi=" +
-          callerUgi + ")");
+      LOG.debug("putEntitiesAsync(entities=" + entities + ", newApp =" +
+          newApp +", callerUgi=" + callerUgi + ")");
     }
   }
 

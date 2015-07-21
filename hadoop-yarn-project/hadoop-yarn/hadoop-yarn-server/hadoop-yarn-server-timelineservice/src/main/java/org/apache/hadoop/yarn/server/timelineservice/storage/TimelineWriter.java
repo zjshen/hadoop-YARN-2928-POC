@@ -44,6 +44,7 @@ public interface TimelineWriter extends Service {
    * @param flowVersion context flow version
    * @param flowRunId
    * @param appId context app ID
+   * @param newApp the flag to indicate if the entity is assocated to a new app
    * @param data
    *          a {@link TimelineEntities} object.
    * @return a {@link TimelineWriteResponse} object.
@@ -51,7 +52,7 @@ public interface TimelineWriter extends Service {
    */
   TimelineWriteResponse write(String clusterId, String userId,
       String flowName, String flowVersion, long flowRunId, String appId,
-      TimelineEntities data) throws IOException;
+      boolean newApp, TimelineEntities data) throws IOException;
 
   /**
    * Aggregates the entity information to the timeline store based on which
