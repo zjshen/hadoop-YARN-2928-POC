@@ -345,7 +345,7 @@ public class TimelineMetric {
     this.values.putAll(values);
   }
 
-  public boolean isValid() {
+  public boolean valid() {
     return (id != null);
   }
 

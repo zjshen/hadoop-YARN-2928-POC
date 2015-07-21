@@ -33,22 +33,27 @@ import org.apache.hadoop.yarn.api.records.timelineservice.TimelineWriteResponse;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.server.timeline.GenericObjectMapper;
 import org.apache.hadoop.yarn.server.timelineservice.collector.TimelineCollectorContext;
+import org.codehaus.jackson.map.ObjectMapper;
 
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
 @Private
 @Unstable
-public class PhoenixAggregatorWriter extends AbstractService {
+public class PhoenixAggregatorStorage extends AbstractService {
 
   public static final String TIMELINE_SERVICE_PHOENIX_STORAGE_CONN_STR
       = YarnConfiguration.TIMELINE_SERVICE_PREFIX
@@ -58,7 +63,7 @@ public class PhoenixAggregatorWriter extends AbstractService {
       = "jdbc:phoenix:localhost:2181:/hbase";
 
   private static final Log LOG
-      = LogFactory.getLog(PhoenixAggregatorWriter.class);
+      = LogFactory.getLog(PhoenixAggregatorStorage.class);
   private static final String PHOENIX_COL_FAMILY_PLACE_HOLDER
       = "timeline_cf_placeholder";
 
@@ -79,8 +84,8 @@ public class PhoenixAggregatorWriter extends AbstractService {
   @VisibleForTesting
   Properties connProperties = new Properties();
 
-  PhoenixAggregatorWriter() {
-    super((PhoenixAggregatorWriter.class.getName()));
+  PhoenixAggregatorStorage() {
+    super((PhoenixAggregatorStorage.class.getName()));
   }
 
   @Override
@@ -110,6 +115,92 @@ public class PhoenixAggregatorWriter extends AbstractService {
       throws IOException {
     return writeAggregatedEntity(clusterId, userId, null, entities,
         AggregationStorageInfo.USER_AGGREGATION);
+  }
+
+  // TODO: reuse the code for userAggregatedEntity, using AggregationStorageInfo
+  public TimelineEntity readFlowAggregatedEntity(String clusterId,
+      String userId, String flowName) throws IOException {
+    TimelineCollectorContext context = new TimelineCollectorContext();
+    context.setClusterId(clusterId);
+    context.setUserId(userId);
+    context.setFlowName(flowName);
+
+    String whereClause = " WHERE user=? AND cluster=? AND flow_name=?";
+    String sql = "SELECT created_time, modified_time, metric_names FROM "
+        + AggregationStorageInfo.FLOW_AGGREGATION.getTableName() + whereClause;
+    TimelineEntity entity = new TimelineEntity();
+    String metrics;
+    try (PreparedStatement psStmt = getConnection().prepareStatement(sql)) {
+      AggregationStorageInfo.FLOW_AGGREGATION.setStringsForPrimaryKey(psStmt,
+          context, null, 1);
+      try (ResultSet rs = psStmt.executeQuery()) {
+        if (!rs.next()) {
+          return null;
+        }
+        entity.setCreatedTime(rs.getLong(1));
+        entity.setModifiedTime(rs.getLong(2));
+        metrics = rs.getString(3);
+      }
+    } catch (SQLException se) {
+      LOG.error("Failed to add entity to Phoenix " + se.getMessage());
+      throw new IOException(se);
+    } catch (Exception e) {
+      LOG.error("Exception on getting connection: " + e.getMessage());
+      throw new IOException(e);
+    }
+
+    String[] rawMetricNames = metrics.split(AGGREGATION_STORAGE_SEPARATOR);
+    String[] metricNamesWithPrefix = new String[rawMetricNames.length];
+    for (int index = 0; index < rawMetricNames.length; index++) {
+      metricNamesWithPrefix[index] = METRIC_COLUMN_FAMILY
+          + rawMetricNames[index];
+    }
+    Set<String> metricNames
+        = new HashSet<>(Arrays.asList(metricNamesWithPrefix));
+    if (metricNames.size() > 0) {
+
+      StringBuilder metricSQL = new StringBuilder("SELECT ").append(
+          StringUtils.join(AggregationStorageInfo.FLOW_AGGREGATION
+              .getPrimaryKeyList(), ",")).append(",").append(
+          StringUtils.join(metricNames, ",")).append(" FROM ")
+          .append(AggregationStorageInfo.FLOW_AGGREGATION.getTableName())
+          .append("(");
+      // FIXME: set the column family to empty string to avoid setting m. twice.
+      appendColumnsSQL(metricSQL, new DynamicColumns<>(
+          "", DynamicColumns.COLUMN_FAMILY_TYPE_BYTES,
+          metricNames));
+      metricSQL.append(") ").append(whereClause);
+
+      try (PreparedStatement metricPreparedStmt
+          = getConnection().prepareStatement(metricSQL.toString())) {
+        AggregationStorageInfo.FLOW_AGGREGATION.setStringsForPrimaryKey(
+            metricPreparedStmt, context, null, 1);
+        try (ResultSet metricRS
+            = metricPreparedStmt.executeQuery()) {
+          if (!metricRS.next()) {
+            return entity;
+          }
+          ResultSetMetaData metricRsMetadata = metricRS.getMetaData();
+          int initialMetricIdx = AggregationStorageInfo.FLOW_AGGREGATION
+              .getPrimaryKeyList().length + 1;
+          for (int i = initialMetricIdx; i <= metricRsMetadata.getColumnCount();
+               i++) {
+            byte[] rawData = metricRS.getBytes(i);
+            ObjectMapper metricMapper = new ObjectMapper();
+            TimelineMetric metric =
+                metricMapper.readValue(rawData, TimelineMetric.class);
+            entity.addMetric(metric);
+          }
+        }
+      } catch (SQLException se) {
+        LOG.error("Failed to add entity to Phoenix " + se.getMessage());
+        throw new IOException(se);
+      } catch (Exception e) {
+        LOG.error("Exception on getting connection: " + e.getMessage());
+        throw new IOException(e);
+      }
+    }
+    return entity;
   }
 
   @Private
@@ -235,9 +326,15 @@ public class PhoenixAggregatorWriter extends AbstractService {
 
   private static <K> StringBuilder appendColumnsSQL(
       StringBuilder colNames, DynamicColumns<K> cfInfo) {
+    boolean first = true;
     // Prepare the sql template by iterating through all keys
     for (K key : cfInfo.columns) {
-      colNames.append(",").append(cfInfo.columnFamilyPrefix)
+      if (!first) {
+        colNames.append(",");
+      } else {
+        first = false;
+      }
+      colNames.append(cfInfo.columnFamilyPrefix)
           .append(key.toString()).append(cfInfo.type);
     }
     return colNames;
@@ -255,7 +352,7 @@ public class PhoenixAggregatorWriter extends AbstractService {
       } else {
         if (converToBytes) {
           try {
-            ps.setBytes(idx++, GenericObjectMapper.write(entry.getValue()));
+            ps.setBytes(idx++, GenericObjectMapper.write(value));
           } catch (IOException ie) {
             LOG.error("Exception in converting values into bytes "
                 + ie.getMessage());
@@ -290,12 +387,14 @@ public class PhoenixAggregatorWriter extends AbstractService {
         StringUtils.join(aggregationInfo.getPrimaryKeyList(), ","));
     if (entity.getInfo() != null) {
       Set<String> keySet = entity.getInfo().keySet();
+      columnDefs.append(",");
       appendColumnsSQL(columnDefs, new DynamicColumns<>(
           INFO_COLUMN_FAMILY, DynamicColumns.COLUMN_FAMILY_TYPE_BYTES,
           keySet));
       numPlaceholders += keySet.size();
     }
     if (formattedMetrics != null) {
+      columnDefs.append(",");
       appendColumnsSQL(columnDefs, new DynamicColumns<>(
           METRIC_COLUMN_FAMILY, DynamicColumns.COLUMN_FAMILY_TYPE_BYTES,
           formattedMetrics.keySet()));

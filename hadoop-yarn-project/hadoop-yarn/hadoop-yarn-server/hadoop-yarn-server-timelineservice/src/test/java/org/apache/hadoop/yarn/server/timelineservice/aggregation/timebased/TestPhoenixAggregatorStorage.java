@@ -45,14 +45,14 @@ import java.util.Map;
 
 import static org.apache.phoenix.util.TestUtil.TEST_PROPERTIES;
 
-public class TestPhoenixAggregatorWriter extends BaseTest {
-  private static PhoenixAggregatorWriter writer;
+public class TestPhoenixAggregatorStorage extends BaseTest {
+  private static PhoenixAggregatorStorage aggregatorStorage;
   private static final int BATCH_SIZE = 3;
 
   @BeforeClass
   public static void setup() throws Exception {
     YarnConfiguration conf = new YarnConfiguration();
-    writer = setupPhoenixClusterAndWriterForTest(conf);
+    aggregatorStorage = setupPhoenixClusterAndWriterForTest(conf);
   }
 
   @Test(timeout = 90000)
@@ -67,13 +67,13 @@ public class TestPhoenixAggregatorWriter extends BaseTest {
 
   @AfterClass
   public static void cleanup() throws Exception {
-    writer.dropTable(AggregationStorageInfo.FLOW_AGGREGATION_TABLE_NAME);
-    writer.dropTable(AggregationStorageInfo.USER_AGGREGATION_TABLE_NAME);
-    writer.serviceStop();
+    aggregatorStorage.dropTable(AggregationStorageInfo.FLOW_AGGREGATION_TABLE_NAME);
+    aggregatorStorage.dropTable(AggregationStorageInfo.USER_AGGREGATION_TABLE_NAME);
+    aggregatorStorage.serviceStop();
     tearDownMiniCluster();
   }
 
-  private static PhoenixAggregatorWriter setupPhoenixClusterAndWriterForTest(
+  private static PhoenixAggregatorStorage setupPhoenixClusterAndWriterForTest(
       YarnConfiguration conf) throws Exception{
     Map<String, String> props = new HashMap<>();
     // Must update config before starting server
@@ -91,10 +91,10 @@ public class TestPhoenixAggregatorWriter extends BaseTest {
     // Must update config before starting server
     setUpTestDriver(new ReadOnlyProps(props.entrySet().iterator()));
 
-    PhoenixAggregatorWriter myWriter = new PhoenixAggregatorWriter();
+    PhoenixAggregatorStorage myWriter = new PhoenixAggregatorStorage();
     // Change connection settings for test
     conf.set(
-        PhoenixAggregatorWriter.TIMELINE_SERVICE_PHOENIX_STORAGE_CONN_STR,
+        PhoenixAggregatorStorage.TIMELINE_SERVICE_PHOENIX_STORAGE_CONN_STR,
         getUrl());
     myWriter.connProperties = PropertiesUtil.deepCopy(TEST_PROPERTIES);
     myWriter.serviceInit(conf);
@@ -118,6 +118,11 @@ public class TestPhoenixAggregatorWriter extends BaseTest {
     metric.addValue(1425016501100L, 8000);
     entity.addMetric(metric);
 
+    TimelineMetric metric1 = new TimelineMetric();
+    metric1.setId("CPU");
+    metric1.addValue(1425016501100L, 6);
+    entity.addMetric(metric1);
+
     return entity;
   }
 
@@ -127,8 +132,30 @@ public class TestPhoenixAggregatorWriter extends BaseTest {
     int numEntity = 1;
     TimelineEntities te = new TimelineEntities();
     te.addEntity(getTestAggregationTimelineEntity());
-    writer.writeAggregatedEntity("cluster_1", "user1", "testFlow", te,
+    aggregatorStorage.writeAggregatedEntity("cluster_1", "user1", "testFlow", te,
         aggregationInfo);
+
+    // TODO: read base on aggregation type
+    TimelineEntity readEntity = aggregatorStorage.readFlowAggregatedEntity(
+        "cluster_1", "user1", "testFlow");
+
+    assertNotNull(readEntity);
+    TimelineEntity sample = getTestAggregationTimelineEntity();
+
+    assertEquals(readEntity.getCreatedTime(), sample.getCreatedTime());
+    assertEquals(readEntity.getModifiedTime(), sample.getModifiedTime());
+
+    TimelineMetric metric = readEntity.getMetrics().iterator().next();
+    TimelineMetric sampleMetric = sample.getMetrics().iterator().next();
+    assertEquals(metric.getId(), sampleMetric.getId());
+    assertEquals(metric.getType(), sampleMetric.getType());
+
+    Long metricKey = metric.getValues().keySet().iterator().next();
+    Long sampleMetricKey =
+        sampleMetric.getValues().keySet().iterator().next();
+    assertEquals(metricKey, sampleMetricKey);
+    assertEquals(metric.getValues().get(metricKey),
+        sampleMetric.getValues().get(sampleMetricKey));
 
     // Verify if we're storing all entities
     String[] primaryKeyList = aggregationInfo.getPrimaryKeyList();
@@ -150,8 +177,7 @@ public class TestPhoenixAggregatorWriter extends BaseTest {
   private void verifySQLWithCount(String sql, int targetCount, String message)
       throws Exception {
     try (
-        Statement stmt =
-          writer.getConnection().createStatement();
+        Statement stmt = aggregatorStorage.getConnection().createStatement();
         ResultSet rs = stmt.executeQuery(sql)) {
       assertTrue("Result set empty on statement " + sql, rs.next());
       assertNotNull("Fail to execute query " + sql, rs);
