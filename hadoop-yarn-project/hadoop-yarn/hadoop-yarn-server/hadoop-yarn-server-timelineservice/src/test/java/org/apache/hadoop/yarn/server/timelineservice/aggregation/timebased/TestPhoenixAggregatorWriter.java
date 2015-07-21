@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.hadoop.yarn.server.timelineservice.storage;
+package org.apache.hadoop.yarn.server.timelineservice.aggregation.timebased;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -25,6 +25,8 @@ import static org.junit.Assert.fail;
 
 import org.apache.hadoop.hbase.IntegrationTestingUtility;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntities;
+import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity;
+import org.apache.hadoop.yarn.api.records.timelineservice.TimelineMetric;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -43,8 +45,8 @@ import java.util.Map;
 
 import static org.apache.phoenix.util.TestUtil.TEST_PROPERTIES;
 
-public class TestPhoenixTimelineWriterImpl extends BaseTest {
-  private static PhoenixTimelineWriterImpl writer;
+public class TestPhoenixAggregatorWriter extends BaseTest {
+  private static PhoenixAggregatorWriter writer;
   private static final int BATCH_SIZE = 3;
 
   @BeforeClass
@@ -54,61 +56,24 @@ public class TestPhoenixTimelineWriterImpl extends BaseTest {
   }
 
   @Test(timeout = 90000)
-  public void testPhoenixWriterBasic() throws Exception {
-    // Set up a list of timeline entities and write them back to Phoenix
-    int numEntity = 12;
-    TimelineEntities te =
-        TestTimelineWriterImpl.getStandardTestTimelineEntities(numEntity);
-    writer.write("cluster_1", "user1", "testFlow", "version1", 1l, "app_test_1",
-        false, te, null);
-    // Verify if we're storing all entities
-    String sql = "SELECT COUNT(entity_id) FROM "
-        + PhoenixTimelineWriterImpl.ENTITY_TABLE_NAME;
-    verifySQLWithCount(sql, numEntity, "Number of entities should be ");
-    // Check config (half of all entities)
-    sql = "SELECT COUNT(c.config) FROM "
-        + PhoenixTimelineWriterImpl.ENTITY_TABLE_NAME + "(c.config VARCHAR) ";
-    verifySQLWithCount(sql, (numEntity / 2),
-        "Number of entities with config should be ");
-    // Check info (half of all entities)
-    sql = "SELECT COUNT(i.info1) FROM "
-        + PhoenixTimelineWriterImpl.ENTITY_TABLE_NAME + "(i.info1 VARBINARY) ";
-    verifySQLWithCount(sql, (numEntity / 2),
-        "Number of entities with info should be ");
-    // Check config and info (a quarter of all entities)
-    sql = "SELECT COUNT(entity_id) FROM "
-        + PhoenixTimelineWriterImpl.ENTITY_TABLE_NAME
-        + "(c.config VARCHAR, i.info1 VARBINARY) "
-        + "WHERE c.config IS NOT NULL AND i.info1 IS NOT NULL";
-    verifySQLWithCount(sql, (numEntity / 4),
-        "Number of entities with both config and info should be ");
-    // Check relatesToEntities and isRelatedToEntities
-    sql = "SELECT COUNT(entity_id) FROM "
-        + PhoenixTimelineWriterImpl.ENTITY_TABLE_NAME
-        + "(rt.testType VARCHAR, ir.testType VARCHAR) "
-        + "WHERE rt.testType IS NOT NULL AND ir.testType IS NOT NULL";
-    verifySQLWithCount(sql, numEntity - 2,
-        "Number of entities with both relatesTo and isRelatedTo should be ");
-    // Check event
-    sql = "SELECT COUNT(entity_id) FROM "
-        + PhoenixTimelineWriterImpl.EVENT_TABLE_NAME;
-    verifySQLWithCount(sql, (numEntity / 4), "Number of events should be ");
-    // Check metrics
-    sql = "SELECT COUNT(entity_id) FROM "
-        + PhoenixTimelineWriterImpl.METRIC_TABLE_NAME;
-    verifySQLWithCount(sql, (numEntity / 4), "Number of events should be ");
+  public void testFlowLevelAggregationStorage() throws Exception {
+    testAggregator(AggregationStorageInfo.FLOW_AGGREGATION);
+  }
+
+  @Test(timeout = 90000)
+  public void testUserLevelAggregationStorage() throws Exception {
+    testAggregator(AggregationStorageInfo.USER_AGGREGATION);
   }
 
   @AfterClass
   public static void cleanup() throws Exception {
-    writer.dropTable(PhoenixTimelineWriterImpl.ENTITY_TABLE_NAME);
-    writer.dropTable(PhoenixTimelineWriterImpl.EVENT_TABLE_NAME);
-    writer.dropTable(PhoenixTimelineWriterImpl.METRIC_TABLE_NAME);
+    writer.dropTable(AggregationStorageInfo.FLOW_AGGREGATION_TABLE_NAME);
+    writer.dropTable(AggregationStorageInfo.USER_AGGREGATION_TABLE_NAME);
     writer.serviceStop();
     tearDownMiniCluster();
   }
 
-  private static PhoenixTimelineWriterImpl setupPhoenixClusterAndWriterForTest(
+  private static PhoenixAggregatorWriter setupPhoenixClusterAndWriterForTest(
       YarnConfiguration conf) throws Exception{
     Map<String, String> props = new HashMap<>();
     // Must update config before starting server
@@ -126,15 +91,61 @@ public class TestPhoenixTimelineWriterImpl extends BaseTest {
     // Must update config before starting server
     setUpTestDriver(new ReadOnlyProps(props.entrySet().iterator()));
 
-    PhoenixTimelineWriterImpl myWriter = new PhoenixTimelineWriterImpl();
+    PhoenixAggregatorWriter myWriter = new PhoenixAggregatorWriter();
     // Change connection settings for test
     conf.set(
-        PhoenixTimelineWriterImpl.TIMELINE_SERVICE_PHOENIX_STORAGE_CONN_STR,
+        PhoenixAggregatorWriter.TIMELINE_SERVICE_PHOENIX_STORAGE_CONN_STR,
         getUrl());
     myWriter.connProperties = PropertiesUtil.deepCopy(TEST_PROPERTIES);
     myWriter.serviceInit(conf);
     return myWriter;
   }
+
+  private static TimelineEntity getTestAggregationTimelineEntity() {
+    TimelineEntity entity = new TimelineEntity();
+    String id = "hello1";
+    String type = "testAggregationType";
+    entity.setId(id);
+    entity.setType(type);
+    entity.setCreatedTime(1425016501000L);
+    entity.setModifiedTime(1425016502000L);
+
+    entity.addInfo("info1", new Integer(1));
+    entity.addInfo("info2", "helloworld");
+
+    TimelineMetric metric = new TimelineMetric();
+    metric.setId("HDFS_BYTES_READ");
+    metric.addValue(1425016501100L, 8000);
+    entity.addMetric(metric);
+
+    return entity;
+  }
+
+  private void testAggregator(AggregationStorageInfo aggregationInfo)
+      throws Exception {
+    // Set up a list of timeline entities and write them back to Phoenix
+    int numEntity = 1;
+    TimelineEntities te = new TimelineEntities();
+    te.addEntity(getTestAggregationTimelineEntity());
+    writer.writeAggregatedEntity("cluster_1", "user1", "testFlow", te,
+        aggregationInfo);
+
+    // Verify if we're storing all entities
+    String[] primaryKeyList = aggregationInfo.getPrimaryKeyList();
+    String sql = "SELECT COUNT(" + primaryKeyList[primaryKeyList.length - 1]
+        +") FROM " + aggregationInfo.getTableName();
+    verifySQLWithCount(sql, numEntity, "Number of entities should be ");
+    // Check info (half of all entities)
+    sql = "SELECT COUNT(i.info1) FROM "
+        + aggregationInfo.getTableName() + "(i.info1 VARBINARY) ";
+    verifySQLWithCount(sql, numEntity,
+        "Number of entities with info should be ");
+    sql = "SELECT COUNT(m.HDFS_BYTES_READ) FROM "
+        + aggregationInfo.getTableName() + "(m.HDFS_BYTES_READ VARBINARY) ";
+    verifySQLWithCount(sql, numEntity,
+        "Number of entities with info should be ");
+  }
+
 
   private void verifySQLWithCount(String sql, int targetCount, String message)
       throws Exception {

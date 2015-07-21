@@ -488,12 +488,10 @@
   <!-- Ignore SQL_PREPARED_STATEMENT_GENERATED_FROM_NONCONSTANT_STRING warnings for Timeline Phoenix storage. -->
   <!-- Since we're using dynamic columns, we have to generate SQL statements dynamically -->
   <Match>
-    <Class name="org.apache.hadoop.yarn.server.timelineservice.storage.PhoenixTimelineWriterImpl" />
+    <Class name="org.apache.hadoop.yarn.server.timelineservice.aggregation.timebased.PhoenixAggregatorWriter" />
     <Or>
       <Method name="storeEntityVariableLengthFields" />
-      <Method name="storeEvents" />
-      <Method name="storeMetrics" />
-      <Method name="write" />
+      <Method name="writeAggregatedEntity" />
     </Or>
   </Match>
   
