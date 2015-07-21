@@ -119,6 +119,7 @@ public class TimelineMetric {
 
     TimelineMetric aggregatedMetric = new TimelineMetric();
     aggregatedMetric.setId(this.id);
+    aggregatedMetric.setToAggregate(true);
     Number aggregatedValue = null;
     // 
     if (op.equals(Operation.SUM)) {
