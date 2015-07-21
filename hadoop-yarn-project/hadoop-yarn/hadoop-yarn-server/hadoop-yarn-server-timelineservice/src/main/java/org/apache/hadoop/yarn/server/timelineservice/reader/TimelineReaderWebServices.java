@@ -184,10 +184,16 @@ public class TimelineReaderWebServices {
     UserGroupInformation callerUGI = getUser(req);
     switch (TimelineAggregateBasis.valueOf(basis)) {
       case APPLICATION:
-        return getTimelineReaderManager().getEntity(userId, clusterId, null,
-            null, aggEntityId,
+        TimelineEntity aggEntity = getTimelineReaderManager().getEntity(userId,
+            clusterId, null, null, aggEntityId,
             TimelineEntityType.YARN_APPLICATION_AGGREGATION.toString(),
             aggEntityId, EnumSet.of(Field.METRICS), callerUGI);
+        if (aggEntity == null) {
+          throw new NotFoundException("Aggregate is not found for basis=" +
+              basis + ", clusterId=" + clusterId + ", aggregateId=" +
+              aggEntityId + ", userId=" + userId);
+        }
+        return aggEntity;
       case FLOW:
         return null;
       case USER:

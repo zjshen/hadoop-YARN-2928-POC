@@ -36,6 +36,7 @@ import org.apache.hadoop.yarn.api.records.timelineservice.TimelineMetric;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineMetricCalculator;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineWriteResponse;
 import org.apache.hadoop.yarn.server.timelineservice.storage.TimelineWriter;
+import org.apache.hadoop.yarn.util.timeline.TimelineUtils;
 
 /**
  * Service that handles writes to the timeline service and writes them to the
@@ -118,7 +119,12 @@ public abstract class TimelineCollector extends CompositeService {
     TimelineCollectorContext context = getTimelineEntityContext();
     Map<String, TimelineMetric> aggregatedMetrics =
         aggregateMetrics(entities);
-    
+    LOG.info("Metrics to aggregate:");
+    for (Map.Entry<String, TimelineMetric> entry :
+        aggregatedMetrics.entrySet()) {
+      LOG.info(entry.getKey() + " : " +
+          TimelineUtils.dumpTimelineRecordtoJSON(entry.getValue()));
+    }
     return writer.write(context.getClusterId(), context.getUserId(),
         context.getFlowName(), context.getFlowVersion(), context.getFlowRunId(),
         context.getAppId(), newApp, entities, aggregatedMetrics);

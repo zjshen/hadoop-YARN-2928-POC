@@ -43,7 +43,9 @@ import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityRowKey
 import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityTable;
 
 import java.io.IOException;
+import java.util.Collection;
 import java.util.EnumSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
 import java.util.NavigableSet;
@@ -370,7 +372,18 @@ public class HBaseTimelineReaderImpl
     for (Map.Entry<String, NavigableMap<Long, Number>> metricResult:
         metricsResult.entrySet()) {
       TimelineMetric metric = new TimelineMetric();
-      metric.setId(metricResult.getKey());
+      Collection<String> tokens =
+          Separator.VALUES.splitEncoded(metricResult.getKey());
+      if (tokens.size() != 2) {
+        throw new IOException(
+            "Invalid metric column name: " + metricResult.getKey());
+      }
+      Iterator<String> idItr = tokens.iterator();
+      String id = idItr.next();
+      String toAggregateStr = idItr.next();
+      boolean toAggregate = toAggregateStr.equals("1") ? true : false;
+      metric.setId(id);
+      metric.setToAggregate(toAggregate);
       // Simply assume that if the value set contains more than 1 elements, the
       // metric is a TIME_SERIES metric, otherwise, it's a SINGLE_VALUE metric
       metric.setType(metricResult.getValue().size() > 1 ?

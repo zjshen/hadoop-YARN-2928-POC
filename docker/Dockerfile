@@ -75,8 +75,7 @@ RUN mkdir ${HADOOP_LOG_DIR} \
 &&  chown hdfs:hadoop ${HADOOP_LOG_DIR} \
 &&  chown yarn:hadoop ${YARN_LOG_DIR} \
 &&  chown yarn:hadoop /var/log/hbase \
-&&  chown yarn:hadoop /var/db/hbase \
-&&  chown yarn:hadoop /var/db/hbase/data
+&&  chown yarn:hadoop /opt/hbase-1.0.1.1
 
 RUN sudo su - -c "source /etc/hadoop-env.sh && hdfs namenode -format" hdfs
 RUN echo "#!/bin/bash" >> /bin/start-hadoop.sh \

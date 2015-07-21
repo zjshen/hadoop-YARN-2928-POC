@@ -23,10 +23,10 @@
 <configuration>
   <property>
     <name>hbase.rootdir</name>
-    <value>file:///var/db/hbase</value>
+    <value>file:///opt/hbase-1.0.1.1</value>
   </property>
   <property>
     <name>hbase.zookeeper.property.dataDir</name>
-    <value>/var/db/hbase/data</value>
+    <value>/opt/hbase-1.0.1.1/data</value>
   </property>
 </configuration>

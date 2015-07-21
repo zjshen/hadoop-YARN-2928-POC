@@ -280,8 +280,6 @@ public class TimelineServiceV2Publisher extends
       entities.addEntity(entity);
       timelineCollector.putEntities(entities, newApp,
           UserGroupInformation.getCurrentUser());
-      LOG.info("Put entities:");
-      LOG.info(TimelineUtils.dumpTimelineRecordtoJSON(entities, true));
     } catch (Exception e) {
       LOG.error("Error when publishing entity " + entity, e);
     }

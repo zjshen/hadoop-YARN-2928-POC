@@ -141,17 +141,18 @@ public class HBaseTimelineWriterImpl extends AbstractService implements
     }
     
     if (aggregatedMetrics != null) {
-      // generate aggregation entity
-      TimelineEntity aggregationEntity = new TimelineEntity();
-      aggregationEntity.setId(appId);
-      aggregationEntity.setType(
-        TimelineEntityType.YARN_APPLICATION_AGGREGATION.toString());
-
+      // generate aggregation row
+      TimelineEntity aggEntity = new TimelineEntity();
+      aggEntity.setType(
+          TimelineEntityType.YARN_APPLICATION_AGGREGATION.toString());
+      aggEntity.setId(appId);
       rowKey = EntityRowKey.getRowKey(clusterId, userId, flowName, flowRunId,
-          appId);
-      storeMetrics(rowKey,
-          new HashSet<TimelineMetric>(aggregatedMetrics.values()));
-
+          appId, aggEntity.getType(), aggEntity.getId());
+      storeInfo(rowKey, aggEntity, flowVersion);
+      storeMetrics(rowKey, new HashSet<>(aggregatedMetrics.values()));
+      for (TimelineMetric metric : aggregatedMetrics.values()) {
+        LOG.info(metric.getId() + " is written");
+      }
      /* for (TimelineMetric metric : aggregatedMetrics.values()) {
         storeAggregatedMetrics(rowKey, metric);
       }*/
