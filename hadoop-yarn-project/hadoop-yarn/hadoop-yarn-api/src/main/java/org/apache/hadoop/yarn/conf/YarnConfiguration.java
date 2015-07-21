@@ -1490,6 +1490,11 @@ public class YarnConfiguration extends Configuration {
   public static final int DEFAULT_TIMELINE_SERVICE_PORT = 10200;
   public static final String DEFAULT_TIMELINE_SERVICE_ADDRESS = "0.0.0.0:"
       + DEFAULT_TIMELINE_SERVICE_PORT;
+  
+  public static final String TIMELINE_SERVICE_COLLECTOR_DELAY_REMOVE_MS =
+      TIMELINE_SERVICE_PREFIX + "collector.delay-remove-interval-ms";
+  public static final int DEFAULT_TIMELINE_SERVICE_COLLECTOR_DELAY_REMOVE_MS =
+      60000;
 
   /** The listening endpoint for the timeline service application.*/
   public static final String TIMELINE_SERVICE_BIND_HOST =

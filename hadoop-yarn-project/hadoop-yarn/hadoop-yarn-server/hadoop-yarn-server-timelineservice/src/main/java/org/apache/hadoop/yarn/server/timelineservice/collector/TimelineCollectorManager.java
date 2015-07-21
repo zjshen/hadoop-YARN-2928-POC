@@ -27,6 +27,8 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.service.AbstractService;
 import org.apache.hadoop.util.ReflectionUtils;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
+import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity;
+import org.apache.hadoop.yarn.client.api.TimelineClient;
 import org.apache.hadoop.yarn.conf.YarnConfiguration;
 import org.apache.hadoop.yarn.exceptions.YarnRuntimeException;
 import org.apache.hadoop.yarn.server.timelineservice.storage.FileSystemTimelineWriterImpl;
@@ -35,6 +37,11 @@ import org.apache.hadoop.yarn.server.timelineservice.storage.TimelineWriter;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 /**
  * Class that manages adding and removing collectors and their lifecycle. It
@@ -48,6 +55,9 @@ public class TimelineCollectorManager extends AbstractService {
       LogFactory.getLog(TimelineCollectorManager.class);
 
   private TimelineWriter writer;
+  private int collectorDelayTime;
+  
+  private static ExecutorService threadPool;
 
   @Override
   public void serviceInit(Configuration conf) throws Exception {
@@ -56,6 +66,13 @@ public class TimelineCollectorManager extends AbstractService {
         FileSystemTimelineWriterImpl.class,
         TimelineWriter.class), conf);
     writer.init(conf);
+    collectorDelayTime = conf.getInt(
+        YarnConfiguration.TIMELINE_SERVICE_COLLECTOR_DELAY_REMOVE_MS,
+        YarnConfiguration.DEFAULT_TIMELINE_SERVICE_COLLECTOR_DELAY_REMOVE_MS);
+    threadPool =
+        Executors.newCachedThreadPool(
+            new ThreadFactoryBuilder().setNameFormat("TimelineCollectorManager #%d")
+            .build());
     super.serviceInit(conf);
   }
 
@@ -125,17 +142,40 @@ public class TimelineCollectorManager extends AbstractService {
    * @return whether it was removed successfully
    */
   public boolean remove(ApplicationId appId) {
-    TimelineCollector collector = collectors.remove(appId);
+    TimelineCollector collector = collectors.get(appId);
     if (collector == null) {
-      LOG.error("the collector for " + appId + " does not exist!");
+      return false;
     } else {
-      postRemove(appId, collector);
-      // stop the service to do clean up
-      collector.stop();
-      LOG.info("The collector service for " + appId + " was removed");
+      removeApplicationWithDelay(appId);
+      return true;
     }
-    return collector != null;
   }
+
+  private void removeApplicationWithDelay(
+      //final Map<ApplicationId, TimelineCollector> collectors,
+      final ApplicationId appId) {
+    Runnable removeAppWrapper = new Runnable() {
+      public void run() {
+        try {
+          TimelineCollector collector = collectors.remove(appId);
+          if (collector == null) {
+            LOG.error("the collector for " + appId + " does not exist!");
+          } else {
+            // sleep 60 seconds by default.
+            Thread.sleep(collectorDelayTime);
+            postRemove(appId, collector);
+            // stop the service to do clean up
+            collector.stop();
+            LOG.info("The collector service for " + appId + " was removed");
+          }
+          //return collector != null;
+        } catch (Exception e) {
+          LOG.error("Removing collector get failed: " + e);
+        }
+      }
+    };
+      threadPool.execute(removeAppWrapper);
+    }
 
   protected void postRemove(ApplicationId appId, TimelineCollector collector) {
 

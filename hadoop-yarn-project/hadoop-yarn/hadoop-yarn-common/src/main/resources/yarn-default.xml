@@ -1681,7 +1681,14 @@
     <name>yarn.timeline-service.address</name>
     <value>${yarn.timeline-service.hostname}:10200</value>
   </property>
-
+  
+  <property>
+    <description>This is default delay time for timeline collector keep running 
+    after application get removed.</description>
+    <name>yarn.timeline-service.collector.delay-remove-interval-ms</name>
+    <value>60000</value>
+  </property>
+  
   <property>
     <description>The http address of the timeline service web application.</description>
     <name>yarn.timeline-service.webapp.address</name>

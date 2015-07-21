@@ -49,6 +49,8 @@ public class TimelineMetric {
     REP // The new metric data replace the old one
   }
 
+  public static String AREA_POSTFIX = "_AREA";
+
   private Type type;
   private String id;
 
@@ -118,8 +120,8 @@ public class TimelineMetric {
       TimelineMetric latestMetric, long aggregateTime, Operation op) {
 
     TimelineMetric aggregatedMetric = new TimelineMetric();
-    aggregatedMetric.setId(this.id);
-    aggregatedMetric.setToAggregate(true);
+    aggregatedMetric.setId(this.id + AREA_POSTFIX);
+    aggregatedMetric.setToAggregate(false);
     Number aggregatedValue = null;
     // 
     if (op.equals(Operation.SUM)) {
