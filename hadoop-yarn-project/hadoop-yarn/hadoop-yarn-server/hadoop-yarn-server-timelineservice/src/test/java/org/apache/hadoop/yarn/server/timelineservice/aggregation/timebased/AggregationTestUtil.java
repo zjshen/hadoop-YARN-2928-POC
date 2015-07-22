@@ -24,11 +24,11 @@ import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntity;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineMetric;
 import org.apache.hadoop.yarn.server.timelineservice.collector.TimelineCollectorContext;
 import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityTable;
-import org.junit.Assert;
 
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 public class AggregationTestUtil {
 
@@ -94,15 +94,9 @@ public class AggregationTestUtil {
     assertEquals(entity.getCreatedTime(), sample.getCreatedTime());
     assertEquals(entity.getModifiedTime(), sample.getModifiedTime());
 
-    TimelineMetric metric = entity.getMetrics().iterator().next();
-    TimelineMetric sampleMetric = sample.getMetrics().iterator().next();
-    assertEquals(metric.getId(), sampleMetric.getId());
-    assertEquals(metric.getType(), sampleMetric.getType());
-
-    Long metricKey = metric.getValues().keySet().iterator().next();
-    Long sampleMetricKey = sampleMetric.getValues().keySet().iterator().next();
-    assertEquals(metricKey, sampleMetricKey);
-    assertEquals(metric.getValues().get(metricKey),
-        sampleMetric.getValues().get(sampleMetricKey));
+    assertEquals(entity.getMetrics().size(), sample.getMetrics().size());
+    for (TimelineMetric m : entity.getMetrics()) {
+      assertTrue(sample.getMetrics().contains(m));
+    }
   }
 }

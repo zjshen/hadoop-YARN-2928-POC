@@ -39,6 +39,8 @@ import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityTable;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableMap;
 
@@ -100,15 +102,26 @@ public class HBaseAggregatorReader implements Closeable {
     entity.setModifiedTime(
         ((Number) EntityColumn.MODIFIED_TIME.readResult(r)).longValue());
 
-    // Read metrics out. Now we're using metrics column family
+    // TODO: either branch this or directly call something similar in HBase reader
     NavigableMap<String, NavigableMap<Long, Number>> metricsResult =
         EntityColumnPrefix.METRIC.readTimeseriesResults(r);
     for (Map.Entry<String, NavigableMap<Long, Number>> metricResult:
         metricsResult.entrySet()) {
       TimelineMetric metric = new TimelineMetric();
-      metric.setId(metricResult.getKey());
+      Collection<String> tokens =
+          Separator.VALUES.splitEncoded(metricResult.getKey());
+      if (tokens.size() != 2) {
+        throw new IOException(
+            "Invalid metric column name: " + metricResult.getKey());
+      }
+      Iterator<String> idItr = tokens.iterator();
+      String id = idItr.next();
+      String toAggregateStr = idItr.next();
+      boolean toAggregate = toAggregateStr.equals("1") ? true : false;
+      metric.setId(id);
+      metric.setToAggregate(toAggregate);
       // Simply assume that if the value set contains more than 1 elements, the
-      // metric is a TIME_SERIES metric, otherwise, it's a TIME_SERIES metric
+      // metric is a TIME_SERIES metric, otherwise, it's a SINGLE_VALUE metric
       metric.setType(metricResult.getValue().size() > 1 ?
           TimelineMetric.Type.TIME_SERIES : TimelineMetric.Type.SINGLE_VALUE);
       metric.addValues(metricResult.getValue());

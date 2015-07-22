@@ -385,7 +385,7 @@ public class PhoenixAggregatorStorage extends AbstractService {
     int numPlaceholders = 0;
     StringBuilder columnDefs = new StringBuilder(
         StringUtils.join(aggregationInfo.getPrimaryKeyList(), ","));
-    if (entity.getInfo() != null) {
+    if (entity.getInfo() != null && entity.getInfo().size() > 0) {
       Set<String> keySet = entity.getInfo().keySet();
       columnDefs.append(",");
       appendColumnsSQL(columnDefs, new DynamicColumns<>(
@@ -393,7 +393,7 @@ public class PhoenixAggregatorStorage extends AbstractService {
           keySet));
       numPlaceholders += keySet.size();
     }
-    if (formattedMetrics != null) {
+    if (formattedMetrics != null && formattedMetrics.size() > 0) {
       columnDefs.append(",");
       appendColumnsSQL(columnDefs, new DynamicColumns<>(
           METRIC_COLUMN_FAMILY, DynamicColumns.COLUMN_FAMILY_TYPE_BYTES,

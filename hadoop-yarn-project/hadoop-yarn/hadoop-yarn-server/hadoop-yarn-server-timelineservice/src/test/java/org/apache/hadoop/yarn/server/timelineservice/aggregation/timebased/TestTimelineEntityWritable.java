@@ -62,24 +62,9 @@ public class TestTimelineEntityWritable {
     if (!e1.getType().equals(e2.getType())) {
       Assert.fail("type mismatch!");
     }
-/*    if (!e1.getEvents().equals(e2.getEvents())) {
-      Assert.fail("events mismatch! ");
-    }
-    if (!e1.getInfo().equals(e2.getInfo())) {
-      Assert.fail("info mismatch! ");
-    }
-    if (!e1.getConfigs().equals(e2.getConfigs())) {
-      Assert.fail("config mismatch! ");
-    }*/
     if (!e1.getMetrics().equals(e2.getMetrics())) {
       Assert.fail("metrics mismatch! ");
     }
-    /*if (!e1.getIsRelatedToEntities().equals(e2.getIsRelatedToEntities())) {
-      Assert.fail("isRelatedTo mismatch! ");
-    }
-    if (!e1.getRelatesToEntities().equals(e2.getRelatesToEntities())) {
-      Assert.fail("relatesTo mismatch! ");
-    }*/
     if (e1.getCreatedTime() != e2.getCreatedTime()) {
       Assert.fail("createdTime mismatch! ");
     }

@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -80,28 +81,30 @@ public class TestFlowAggregator extends PhoenixRelatedTest {
     TimelineCollectorContext sampleContext = AggregationTestUtil.sampleContext1;
 
     // test mapper
-    Mapper.Context context = mock(Mapper.Context.class);
+    Mapper.Context mapperContext = mock(Mapper.Context.class);
     // return conf for HBase here
-    when(context.getConfiguration()).thenReturn(util.getConfiguration());
-    when(context.getJobName()).thenReturn("test_job_name");
+    when(mapperContext.getConfiguration()).thenReturn(util.getConfiguration());
+    when(mapperContext.getJobName()).thenReturn("test_job_name");
 
     FlowAggregator.FlowAggregatorMapper testMapper =
         new FlowAggregator.FlowAggregatorMapper();
-    String sampleInput = sampleContext.getClusterId() + FlowAggregator.KEY_SEPARATOR
+    String sampleInput
+        = sampleContext.getClusterId() + FlowAggregator.KEY_SEPARATOR
         + sampleContext.getUserId() + FlowAggregator.KEY_SEPARATOR
         + sampleContext.getFlowName();
-    testMapper.map(new IntWritable(1), new Text(sampleInput), context);
+    testMapper.map(new IntWritable(1), new Text(sampleInput), mapperContext);
 
     ArgumentCaptor<Text> outputFlowInfo = ArgumentCaptor.forClass(Text.class);
     ArgumentCaptor<TimelineEntityWritable> outputWritable
         = ArgumentCaptor.forClass(TimelineEntityWritable.class);
-    verify(context).write(outputFlowInfo.capture(), outputWritable.capture());
+    verify(mapperContext).write(outputFlowInfo.capture(),
+        outputWritable.capture());
 
     TimelineEntityWritable mapperOutput = outputWritable.getValue();
     assertEquals(FlowAggregator.FLOW_AGGREGATION_TYPE,
         mapperOutput.get().getType());
     assertEquals(AggregationTestUtil.getTestAggregationTimelineEntity()
-        .getMetrics().size(), mapperOutput.get().getMetrics().size());
+        .getMetrics().size() * 2, mapperOutput.get().getMetrics().size());
 
 
     // test reducer
@@ -118,6 +121,11 @@ public class TestFlowAggregator extends PhoenixRelatedTest {
         reducerContext);
 
     // Verify if we're storing all entities
+    TimelineEntity readEntity = aggregatorStorage.readFlowAggregatedEntity(
+        sampleContext.getClusterId(), sampleContext.getUserId(),
+        sampleContext.getFlowName());
+    assertNotNull(readEntity);
+
     AggregationStorageInfo aggregationInfo
         = AggregationStorageInfo.FLOW_AGGREGATION;
     String[] primaryKeyList = aggregationInfo.getPrimaryKeyList();
@@ -128,7 +136,6 @@ public class TestFlowAggregator extends PhoenixRelatedTest {
         + aggregationInfo.getTableName() + "(m.HDFS_BYTES_READ VARBINARY) ";
     verifySQLWithCount(sql, 1,
         "Number of entities with info should be ");
-
   }
 
   @After
