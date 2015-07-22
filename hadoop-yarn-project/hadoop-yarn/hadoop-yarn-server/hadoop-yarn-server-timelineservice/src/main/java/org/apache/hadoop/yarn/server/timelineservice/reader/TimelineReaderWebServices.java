@@ -130,6 +130,7 @@ public class TimelineReaderWebServices {
           ", clusterId=" + clusterId + ", appId=" + appId + ", entityType=" +
           entityType + ", entityId=" + entityId);
     } else {
+      LOG.info(TimelineUtils.dumpTimelineRecordtoJSON(entity, true));
       return entity;
     }
   }

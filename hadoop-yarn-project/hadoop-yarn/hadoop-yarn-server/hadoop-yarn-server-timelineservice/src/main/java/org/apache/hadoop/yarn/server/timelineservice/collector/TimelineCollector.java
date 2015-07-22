@@ -119,12 +119,6 @@ public abstract class TimelineCollector extends CompositeService {
     TimelineCollectorContext context = getTimelineEntityContext();
     Map<String, TimelineMetric> aggregatedMetrics =
         aggregateMetrics(entities);
-    LOG.info("Metrics to aggregate:");
-    for (Map.Entry<String, TimelineMetric> entry :
-        aggregatedMetrics.entrySet()) {
-      LOG.info(entry.getKey() + " : " +
-          TimelineUtils.dumpTimelineRecordtoJSON(entry.getValue()));
-    }
     return writer.write(context.getClusterId(), context.getUserId(),
         context.getFlowName(), context.getFlowVersion(), context.getFlowRunId(),
         context.getAppId(), newApp, entities, aggregatedMetrics);

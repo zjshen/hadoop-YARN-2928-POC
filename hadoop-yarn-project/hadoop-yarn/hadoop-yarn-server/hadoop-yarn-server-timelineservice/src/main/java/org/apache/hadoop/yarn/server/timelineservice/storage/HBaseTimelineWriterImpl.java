@@ -18,6 +18,7 @@
 package org.apache.hadoop.yarn.server.timelineservice.storage;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -48,6 +49,7 @@ import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityColumn
 import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityRowKey;
 import org.apache.hadoop.yarn.server.timelineservice.storage.entity.EntityTable;
 import org.apache.hadoop.yarn.api.records.timelineservice.TimelineEntityType;
+import org.apache.hadoop.yarn.util.timeline.TimelineUtils;
 
 /**
  * This implements a hbase based backend for storing application timeline entity
@@ -149,9 +151,10 @@ public class HBaseTimelineWriterImpl extends AbstractService implements
       rowKey = EntityRowKey.getRowKey(clusterId, userId, flowName, flowRunId,
           appId, aggEntity.getType(), aggEntity.getId());
       storeInfo(rowKey, aggEntity, flowVersion);
-      storeMetrics(rowKey, new HashSet<>(aggregatedMetrics.values()));
       for (TimelineMetric metric : aggregatedMetrics.values()) {
-        LOG.info(metric.getId() + " is written");
+        LOG.info("Metrics is written:");
+        LOG.info(TimelineUtils.dumpTimelineRecordtoJSON(metric, true));
+        storeMetrics(rowKey, Collections.singleton(metric));
       }
      /* for (TimelineMetric metric : aggregatedMetrics.values()) {
         storeAggregatedMetrics(rowKey, metric);

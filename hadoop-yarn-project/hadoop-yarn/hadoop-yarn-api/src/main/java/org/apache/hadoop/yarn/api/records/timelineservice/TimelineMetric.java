@@ -94,7 +94,7 @@ public class TimelineMetric {
   }
   
   
-  @XmlElement(name = "aggregated")
+  @XmlElement(name = "toaggregate")
   public boolean getToAggregate() {
     return toAggregate;
   }

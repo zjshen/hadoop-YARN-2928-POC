@@ -104,6 +104,7 @@ public class HBaseTimelineReaderImpl
     byte[] rowKey = EntityRowKey.getRowKey(
         clusterId, userId, flowId, flowRunId, appId, entityType, entityId);
     Get get = new Get(rowKey);
+    get.setMaxVersions(Integer.MAX_VALUE);
     return getEntity(
         entityTable.getResult(hbaseConf, conn, get), fieldsToRetrieve,
         false, 0L, 0L, false, 0L, 0L, null, null, null, null, null, null);
