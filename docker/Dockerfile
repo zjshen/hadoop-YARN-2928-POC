@@ -83,13 +83,14 @@ RUN echo "#!/bin/bash" >> /bin/start-hadoop.sh \
 &&  echo 'sudo su - -c "source /etc/hadoop-env.sh && hadoop-daemon.sh start datanode" hdfs' >> /bin/start-hadoop.sh \
 &&  echo 'sudo su - -c "source /etc/hadoop-env.sh && hdfs dfs -mkdir /hadoop-yarn" hdfs' >> /bin/start-hadoop.sh \
 &&  echo 'sudo su - -c "source /etc/hadoop-env.sh && hdfs dfs -chown yarn:hadoop /hadoop-yarn" hdfs' >> /bin/start-hadoop.sh \
-&&  echo 'sudo su - -c "source /etc/hadoop-env.sh && hdfs dfs -mkdir -p /user/root" hdfs' >> /bin/start-hadoop.sh \
-&&  echo 'sudo su - -c "source /etc/hadoop-env.sh && hdfs dfs -chown root /user/root" hdfs' >> /bin/start-hadoop.sh \
+&&  echo 'sudo su - -c "source /etc/hadoop-env.sh && hdfs dfs -mkdir -p /user/yarn" hdfs' >> /bin/start-hadoop.sh \
+&&  echo 'sudo su - -c "source /etc/hadoop-env.sh && hdfs dfs -chown yarn /user/yarn" hdfs' >> /bin/start-hadoop.sh \
 &&  echo 'sudo su - -c "source /etc/hadoop-env.sh && /opt/hbase-1.0.1.1/bin/start-hbase.sh" yarn' >> /bin/start-hadoop.sh \
 &&  echo 'sudo su - -c "source /etc/hadoop-env.sh && hadoop org.apache.hadoop.yarn.server.timelineservice.storage.TimelineSchemaCreator" yarn' >> /bin/start-hadoop.sh \
 &&  echo 'sudo su - -c "source /etc/hadoop-env.sh && yarn-daemon.sh start resourcemanager" yarn' >> /bin/start-hadoop.sh \
 &&  echo 'sudo su - -c "source /etc/hadoop-env.sh && yarn-daemon.sh start nodemanager" yarn' >> /bin/start-hadoop.sh \
 &&  echo 'sudo su - -c "source /etc/hadoop-env.sh && yarn-daemon.sh start timelinereader" yarn' >> /bin/start-hadoop.sh \
+&&  echo 'sudo su - -c "source /etc/hadoop-env.sh && mr-jobhistory-daemon.sh start historyserver" yarn' >> /bin/start-hadoop.sh \
 &&  chmod a+x /bin/start-hadoop.sh
 
 EXPOSE 8088 8188

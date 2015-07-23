@@ -34,4 +34,12 @@
         <name>yarn.app.mapreduce.am.staging-dir</name>
         <value>/user/${user.name}/.staging</value>
     </property>
+    <property>
+        <name>yarn.app.mapreduce.am.resource.mb</name>
+        <value>1024</value>
+    </property>
+    <property>
+        <name>yarn.app.mapreduce.am.command-opts</name>
+        <value>-Xmx128m</value>
+    </property>
 </configuration>
