@@ -20,7 +20,7 @@ package org.apache.hadoop.yarn.server.timelineservice.aggregation.timebased;
 import com.google.common.annotations.VisibleForTesting;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
@@ -55,9 +55,10 @@ public class FlowAggregator {
   private static final int KEY_IDX_FLOW_NAME = 2;
 
   public static class FlowAggregatorMapper
-      extends Mapper<IntWritable, Text, Text, TimelineEntityWritable>{
+      extends Mapper<LongWritable, Text, Text, TimelineEntityWritable>{
 
-    public void map(IntWritable key, Text flowInfo, Context context)
+    @Override
+    public void map(LongWritable key, Text flowInfo, Context context)
         throws IOException, InterruptedException {
       String[] rawContext = flowInfo.toString().split(KEY_SEPARATOR);
       String clusterId = rawContext[KEY_IDX_CLUSTER_ID];
@@ -75,7 +76,7 @@ public class FlowAggregator {
 
         context.write(flowInfo, new TimelineEntityWritable(resultEntity));
       } catch (Exception e) {
-        throw  new IOException(e);
+        throw new IOException(e);
       }
     }
   }
@@ -84,7 +85,8 @@ public class FlowAggregator {
       extends Reducer<Text, TimelineEntityWritable, Text,
       TimelineEntityWritable> {
 
-    public void reduce(Text key, Iterator<TimelineEntityWritable> values,
+    @Override
+    public void reduce(Text key, Iterable<TimelineEntityWritable> values,
         Context context)
         throws IOException, InterruptedException {
       PhoenixAggregatorStorage aggregatorStorage
@@ -96,8 +98,10 @@ public class FlowAggregator {
         String flowName = rawContext[KEY_IDX_FLOW_NAME];
 
         TimelineEntities entities = new TimelineEntities();
-        while (values.hasNext()) {
-          TimelineEntityWritable entityWritable = values.next();
+        Iterator valuesIterator = values.iterator();
+        while (valuesIterator.hasNext()) {
+          TimelineEntityWritable entityWritable
+              = (TimelineEntityWritable) valuesIterator.next();
           TimelineEntity entity = entityWritable.get();
           entities.addEntity(entity);
         }
@@ -111,7 +115,7 @@ public class FlowAggregator {
         aggregatorStorage.writeFlowAggregation(clusterId, user, flowName,
             resultEntities);
         aggregatorStorage.serviceStop();
-        context.write(key, new TimelineEntityWritable());
+        context.write(key, new TimelineEntityWritable(resultEntity));
       } catch (Exception e) {
         throw new IOException(e);
       }
@@ -121,12 +125,12 @@ public class FlowAggregator {
   static int runAggregations(String[] args) throws Exception {
     Configuration conf = new Configuration();
     long timestamp = System.currentTimeMillis();
-    Job job = Job.getInstance(conf, FLOW_AGGREGATOR_JOB_NAME + "_"+ timestamp);
+    Job job = Job.getInstance(conf, FLOW_AGGREGATOR_JOB_NAME + "_" + timestamp);
     job.setJarByClass(FlowAggregator.class);
     job.setMapperClass(FlowAggregatorMapper.class);
     job.setReducerClass(FlowAggregatorReducer.class);
     job.setOutputKeyClass(Text.class);
-    job.setOutputValueClass(IntWritable.class);
+    job.setOutputValueClass(TimelineEntityWritable.class);
 
     FileInputFormat.addInputPath(job, new Path(args[0]));
     FileOutputFormat.setOutputPath(job, new Path(args[1]));

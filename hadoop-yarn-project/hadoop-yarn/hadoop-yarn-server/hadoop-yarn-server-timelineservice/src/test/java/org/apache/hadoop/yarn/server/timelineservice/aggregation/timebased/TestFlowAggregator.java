@@ -20,7 +20,7 @@ package org.apache.hadoop.yarn.server.timelineservice.aggregation.timebased;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
-import org.apache.hadoop.io.IntWritable;
+import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Reducer;
@@ -35,6 +35,7 @@ import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -92,7 +93,7 @@ public class TestFlowAggregator extends PhoenixRelatedTest {
         = sampleContext.getClusterId() + FlowAggregator.KEY_SEPARATOR
         + sampleContext.getUserId() + FlowAggregator.KEY_SEPARATOR
         + sampleContext.getFlowName();
-    testMapper.map(new IntWritable(1), new Text(sampleInput), mapperContext);
+    testMapper.map(new LongWritable(1), new Text(sampleInput), mapperContext);
 
     ArgumentCaptor<Text> outputFlowInfo = ArgumentCaptor.forClass(Text.class);
     ArgumentCaptor<TimelineEntityWritable> outputWritable
@@ -113,11 +114,16 @@ public class TestFlowAggregator extends PhoenixRelatedTest {
     when(reducerContext.getConfiguration()).thenReturn(confForPhoenix);
     when(reducerContext.getJobName()).thenReturn("test_job_name");
 
-    List entityWritableList = new ArrayList();
+    final List entityWritableList = new ArrayList();
     entityWritableList.add(mapperOutput);
     FlowAggregator.FlowAggregatorReducer testReducer
         = new FlowAggregator.FlowAggregatorReducer();
-    testReducer.reduce(new Text(sampleInput), entityWritableList.iterator(),
+    testReducer.reduce(new Text(sampleInput),
+        new Iterable<TimelineEntityWritable>() {
+          @Override public Iterator<TimelineEntityWritable> iterator() {
+            return entityWritableList.iterator();
+          }
+        },
         reducerContext);
 
     // Verify if we're storing all entities
